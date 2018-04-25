@@ -6,34 +6,110 @@ Created on Fri Apr 20 17:28:08 2018
 @author: thinkpad
 """
 
-class FCNet(trc.nn.Module):
+import keras
+import numpy as np
+from keras import layers
+from keras import backend as K
 
-    def __init__(self):
-        super(Net, self).__init__()
+class BaseNetwork(keras.Sequential):
+    def __init__(self,states_dim,actions_n):
+        super(BaseNetwork, self).__init__()
         
-        self.layer1 = nn.Conv2d(1,10,5)
-        self.layer2 = nn.Conv2d(10,20,5)
+        self.input_dim = states_dim
+        self.output_n = actions_n
+        self.create_network()
+    
+    def create_network():
+        raise NotImplementedError
+    def fit(self,X,Y,epochs=10,batch_size=30):
+        super(BaseNetwork, self).fit(X,Y,batch_size,epochs)
+    
+    @property
+    def trainable_variables(self):
+        return self.trainable_weights
+    
+    def zero_initializer(self):
+        zero_weights = []
+        for x in self.trainable_variables:
+            zero_weights.append(np.zeros(x.shape))
+        self.set_weights(zero_weights)
         
-        # an affine operation: y = Wx + b
-        self.fc1 = nn.Linear(20 * 4 * 4, 120)
-        self.fc2 = nn.Linear(120, 80)
-        self.fc3 = nn.Linear(80, 10)
+    def predict(self,image):
+        if len(image.shape) ==4:
+            return super(BaseNetwork,self).predict(image)
+        else:
+            _image = image.reshape((1,)+image.shape)
+            return super(BaseNetwork,self).predict(_image)[0]
 
-    def forward(self, x):
-        # Max pooling over a (2, 2) window
-        x = F.max_pool2d(F.relu(self.layer1(x)), (2, 2))
-        # If the size is a square you can only specify a single number
-        x = F.max_pool2d(F.relu(self.layer2(x)), 2)
+class ConvNet(BaseNetwork):
+    
+    def create_network(self):
+        n_filters_1 = 16
+        k_size_1 = 4
+        stride_1 = 2
         
-        x = x.view(-1, self.num_flat_features(x))
-        x = F.softplus(self.fc1(x))
-        x = F.softplus(self.fc2(x))
-        x = self.fc3(x)
-        return x
+        n_filters_2 = 32
+        k_size_2 = 3
+        stride_2 = 2
+        
+        self.add(layers.Conv2D(n_filters_1,k_size_1,strides=stride_1,activation='relu',input_shape=self.input_dim))
+        self.add(layers.MaxPooling2D())
+        self.add(layers.Conv2D(n_filters_2,k_size_2,strides=stride_2,activation='relu'))
+        self.add(layers.Flatten())
+        self.add(layers.Dense(256,activation='softplus'))
+        self.add(layers.Dense(128,activation='softplus'))
 
-    def num_flat_features(self, x):
-        size = x.size()[1:]  # all dimensions except the batch dimension
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
+class FCNet(BaseNetwork):
+
+    def create_network(self):
+        self.add(layers.MaxPooling2D(input_shape = self.input_dim))
+        self.add(layers.Flatten())
+        self.add(layers.Dense(2048,activation='relu'))
+        self.add(layers.Dense(2048,activation='tanh'))
+        #self.add(layers.Dense(1024,activation='sigmoid'))
+        self.add(layers.Dense(1024,activation='relu'))
+        self.add(layers.Dense(512,activation='softplus'))
+        
+        
+        
+class P_ConvNet(ConvNet):
+    def create_network(self):
+        super(P_ConvNet,self).create_network()
+        self.add(layers.Dense(self.output_n,activation='softmax'))
+        self.compile(optimizer='rmsprop',loss='kullback_leibler_divergence')
+        print(self.summary())
+        
+class P_FCNet(FCNet):
+    def create_network(self):
+        super(P_FCNet,self).create_network()
+        self.add(layers.Dense(self.output_n,activation='softmax'))
+        self.compile(optimizer='rmsprop',loss='kullback_leibler_divergence')
+        print(self.summary())
+        
+class Q_ConvNet(ConvNet):
+
+    def create_network(self):
+        super(Q_ConvNet,self).create_network()
+        self.add(layers.Dense(self.output_n,activation='linear'))
+        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        print(self.summary())
+        
+class Q_FCNet(BaseNetwork):
+
+    def create_network(self):
+        super(Q_FCNet,self).create_network()
+
+        self.add(layers.Dense(self.output_n,activation='linear'))
+        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        print(self.summary())
+
+
+
+"""
+images = np.random.normal(0,1,(1000,48,48,3))
+Y = np.random.rand(4*1000).reshape((1000,4))
+Y = (Y.T/Y.sum(axis=1)).T
+states_dim = images.shape[1:]
+actions_n = 4
+net = Q_ConvNet(states_dim, actions_n)
+"""

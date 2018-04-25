@@ -11,6 +11,7 @@ import config
 import tensorflow as tf
 import numpy as np
 import time
+import torch
 
 class TRPO(object):
     
@@ -19,6 +20,7 @@ class TRPO(object):
         self.env = env
         
         self.policy = policy.BasePolicy(env.states_dim,env.action_n)
+        
         self.img_size = config.STATE_DIM
         
         self.policy= policy.Policy(env,self.session)
@@ -39,7 +41,7 @@ class TRPO(object):
         eps = config.EPS
         
         
-        self.var_list = tf.trainable_variables()
+        self.var_list = model.trainable_variables()
         
         self.create_surr()
 
@@ -53,12 +55,13 @@ class TRPO(object):
                         tf.log(self.policy.pi_theta + eps)) / self.Nf)
                         
         
-        
         self.KL_firstfixed = tf.reduce_sum(self.policy.pi_theta*
                 tf.log((self.policy.pi_theta + eps) /
                 (tf.stop_gradient(self.policy.pi_theta + eps)))) / self.Nf
                 
         self.KL_firstfixed_grad = tf.gradients(self.KL_firstfixed, self.var_list)
+        
+        
         
         shapes = map(utils.var_shape, self.var_list)
         
@@ -72,14 +75,13 @@ class TRPO(object):
             start += size
         
         
-
         self.fisher_vect_prod = (utils.flatgrad([tf.reduce_sum(g * t) for (g, t) in 
                             zip(self.KL_firstfixed_grad, self.tangents)],
                      self.var_list))
         
-        self.current_theta = utils.GetFlat(self.session, self.var_list)
+        self.current_theta = utils.GetFlat(self.var_list)
         
-        self.set_theta = utils.SetFromFlat(self.session, self.var_list)
+        self.set_theta = utils.SetFromFlat(self.var_list)
         
         self.value_func = utils.ValueFunction(self.session)
         self.stats = []
