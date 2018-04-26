@@ -9,22 +9,25 @@ import NeuralNets
 
 class BaseDeep(object):
 
-    def __init__(self,states_dim, actions_n,stochastic =True, network_type='FC'):
+    def __init__(self,states_dim, actions_n, network_type='FC'):
         
         self.states_dim = states_dim
         self.actions_n = actions_n
         self.network_type = network_type
-        self.stochastic = stochastic
         self.setup_model()
         
     def setup_model(self):
         raise (NotImplementedError, self.network_type)
         
     def evaluate(self,state):
+        
         return self.net.predict(state)
     
-    def reinforce(self,episode):
-        raise NotImplementedError
+    def save(self,name):
+        self.net.save(name)
+        
+    def load(self,name):
+        self.net.load(name)
 
     @property
     def variables(self):

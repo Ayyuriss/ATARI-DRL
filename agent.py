@@ -6,11 +6,12 @@ Created on Fri Apr 20 12:27:48 2018
 @author: thinkpad
 """
 import numpy as np
+import DeepFunctions
 
 
 class Agent(object):
     
-    def __init__(self, model, model_type, epsilon=-1):
+    def __init__(self, model, model_type):
         
         self.epsilon = epsilon
         
@@ -20,26 +21,37 @@ class Agent(object):
         self.actions_n = model.actions_n
         
     def act(self,state,train=False):
-        if train:
-            if np.random.rand() < self.epsilon:
-                return np.random.randint(0,self.actions_n)
-            else:
-                return self.learned(state)
-        else:
-            return self.learned(state)
-    
-    def learned(self,state):
-        return self.model.devide(state)        
-    
-    def train(self,episode):
         
-        self.model.reinforce(episode)
+        raise NotImplementedError
     
-from modular_rl import *
+    def reinforce(self,episodes):
+        
+        raise NotImplementedError
+        
+    def save(self,name):
+        self.model.save(name)
+    def load(self,name):
+        self.model.load(name)
 
-# ================================================================
-# Trust Region Policy Optimization
-# ================================================================
+
+class DQN(Agent):
+    
+    def __init__(self, states_dim, actions_n, neural_type, gamma, epsilon):
+        model = DeepFunctions.DeepQ(states_dim, actions_n, neural_type)
+        super(DQN,self).__init__(model, "Q")
+        self.eps = epsilon
+        self.discount = gamma
+    def act(self,state):
+        
+        return np.argmax(self.model.evalute(state))
+    
+    def reinforce(self,episodes):
+        pass
+    
+    
+        
+    
+
 
 class TRPO(Agent):
     
@@ -49,8 +61,6 @@ class TRPO(Agent):
     ]
 
     def __init__(self, policy, usercfg):
-        EzPickle.__init__(self, stochpol, usercfg)
-        cfg = update_default_config(self.options, usercfg)
 
         self.policy = policy
         self.cfg = cfg

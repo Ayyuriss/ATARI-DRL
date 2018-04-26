@@ -6,7 +6,10 @@ Created on Fri Apr 20 14:43:53 2018
 @author: thinkpad
 """
 
+
 import numpy as np
+from skimage import transform
+from scipy.misc import imshow
 import scipy.signal
 
 def to_categorical(Y,n):
@@ -316,4 +319,17 @@ def write_dict(dic):
     fo.close()
 
 
+def grayscale(frame):
+    R = frame[:,:, 0]
+    G = frame[:,:, 1]
+    B = frame[:,:, 2]
+    return (0.2989*R+0.5870*G + 0.1140*B)/255
+    
+def get_luminescence(frame):
+	R = frame[:,:, 0]
+	G = frame[:,:, 1]
+	B = frame[:,:, 2]
+	return (0.2126*R + 0.7152*G + 0.0722*B).astype(int)
 
+def show(frame):
+    imshow(frame)

@@ -35,11 +35,17 @@ class BaseNetwork(keras.Sequential):
         self.set_weights(zero_weights)
         
     def predict(self,image):
-        if len(image.shape) ==4:
+        if image.ndim == 4:
             return super(BaseNetwork,self).predict(image)
-        else:
+        elif image.ndim == 3:
             _image = image.reshape((1,)+image.shape)
             return super(BaseNetwork,self).predict(_image)[0]
+        else:
+            raise(NotImplementedError,"Images dimension:%d" % image.ndim)
+    def save(self,name):
+        self.save_weights(name)
+    def load(self,name):
+        self.load_weights(name, by_name=False)
 
 class ConvNet(BaseNetwork):
     
