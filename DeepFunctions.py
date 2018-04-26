@@ -6,7 +6,12 @@ Created on Thu Jan 18 13:07:46 2018
 """
 
 import NeuralNets
+import numpy as np
+import keras as kr
 
+# ================================================================
+# Base class for Q and deep Policy
+# ================================================================
 class BaseDeep(object):
 
     def __init__(self,states_dim, actions_n, network_type='FC'):
@@ -39,7 +44,10 @@ class BaseDeep(object):
     @property
     def output(self):
         return self.net.output
-    
+# ================================================================
+# Object class for Q and policy
+# ================================================================
+
 class DeepPolicy(BaseDeep):
     def setup_model(self):
         if self.network_type in ['FC','CONV']:
@@ -60,3 +68,28 @@ class DeepQ(BaseDeep):
         else:
             raise (NotImplementedError, self.network_type)
             
+            
+# ================================================================
+# Value Function for baseline
+# ================================================================
+class ValueFunction(BaseDeep):
+
+    def setup_model(self):
+        self.net = NeuralNets.SingleFCNet(self.states_dim,self.actions_n)                           
+        
+    def _features(self, episode):
+        o = episode["states"].astype('float32')
+        o = o.reshape(np.prod(o.shape[0]), -1)
+        act = episode["actions_dist"].astype('float32')
+        l = len(episode["rewards"])
+        al = np.arange(l).reshape(-1, 1) / 10.0
+        ret = np.concatenate([o, act, al, np.ones((l, 1))], axis=1)
+        return ret
+
+    def fit(self, episodes):
+        featmat = np.concatenate([self._features(episode) for episode in episodes])
+        returns = np.concatenate([episode["returns"] for episode in episodes])
+        self.net.fit(featmat,returns)
+
+    def evaluate(self, episode):
+        self.net.predict(self._features(episode))

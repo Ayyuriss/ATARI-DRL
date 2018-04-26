@@ -11,6 +11,11 @@ import numpy as np
 from keras import layers
 from keras import backend as K
 
+
+# ================================================================
+# Base structure for Neural structure
+# ================================================================
+
 class BaseNetwork(keras.Sequential):
     def __init__(self,states_dim,actions_n):
         super(BaseNetwork, self).__init__()
@@ -47,6 +52,10 @@ class BaseNetwork(keras.Sequential):
     def load(self,name):
         self.load_weights(name, by_name=False)
 
+# ================================================================
+# Convulutional Structure
+# ================================================================
+        
 class ConvNet(BaseNetwork):
     
     def create_network(self):
@@ -64,7 +73,9 @@ class ConvNet(BaseNetwork):
         self.add(layers.Flatten())
         self.add(layers.Dense(256,activation='softplus'))
         self.add(layers.Dense(128,activation='softplus'))
-
+# ================================================================
+#  Fully Connected structures
+# ================================================================
 class FCNet(BaseNetwork):
 
     def create_network(self):
@@ -75,8 +86,21 @@ class FCNet(BaseNetwork):
         #self.add(layers.Dense(1024,activation='sigmoid'))
         self.add(layers.Dense(1024,activation='relu'))
         self.add(layers.Dense(512,activation='softplus'))
+
+class SingleFCNet(BaseNetwork):
+    def __init__(self,states_dim,actions_n):
+        self.input_dim = np.prod(states_dim)+actions_n+2
+        self.output_n = 1
         
+    def create_network(self, shape):
+        self.add(layers.Dense(1, input_shape=self.input_dim,activation='tanh'))
+        self.compile(optimizer = 'adam',loss='mean_squared_error')
+
+
         
+# ================================================================
+# Neural Nets for Policy Gradient
+# ================================================================
         
 class P_ConvNet(ConvNet):
     def create_network(self):
@@ -91,7 +115,10 @@ class P_FCNet(FCNet):
         self.add(layers.Dense(self.output_n,activation='softmax'))
         self.compile(optimizer='rmsprop',loss='kullback_leibler_divergence')
         print(self.summary())
-        
+
+# ================================================================
+# Neural Nets for Q Learning
+# ================================================================
 class Q_ConvNet(ConvNet):
 
     def create_network(self):
@@ -110,6 +137,7 @@ class Q_FCNet(BaseNetwork):
         print(self.summary())
 
 
+    
 
 """
 images = np.random.normal(0,1,(1000,48,48,3))

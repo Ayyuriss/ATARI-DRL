@@ -5,6 +5,7 @@ Created on Thu Jan 18 12:59:20 2018
 @author: gamer
 """
 from ale_python_interface import ALEInterface
+import tools
 
 
 class ALE(ALEInterface):
@@ -38,7 +39,7 @@ class ALE(ALEInterface):
         assert action in range(self.actions_n), "Action not available"
         for _ in range(self.skip_frame):
             reward = max(reward, super(ALE, self).act(self.actions_raw[action]))
-        state = self.getScreenRGB()
+        state = tools.grayscale(self.getScreenRGB())
         
         return reward, state, self.lives()
 

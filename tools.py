@@ -12,6 +12,10 @@ from skimage import transform
 from scipy.misc import imshow
 import scipy.signal
 
+
+EPS = np.finfo(np.float64).tiny
+
+
 def to_categorical(Y,n):
     _Y = np.zeros((len(Y),n))
     mY = int(min(Y))
@@ -64,16 +68,16 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point
     """
     fval = f(x)
-    print "fval before", fval
+    print("fval before", fval)
     for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
         xnew = x + stepfrac*fullstep
         newfval = f(xnew)
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate*stepfrac
         ratio = actual_improve/expected_improve
-        print "a/e/r", actual_improve, expected_improve, ratio
+        print("a/e/r:", actual_improve, expected_improve, ratio)
         if ratio > accept_ratio and actual_improve > 0:
-            print "fval after", newfval
+            print("fval after:", newfval)
             return True, xnew
     return False, x
 
@@ -88,12 +92,12 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
 
     fmtstr =  "%10i %10.3g %10.3g"
     titlestr =  "%10s %10s %10s"
-    if verbose: print titlestr % ("iter", "residual norm", "soln norm")
+    if verbose: print(titlestr % ("iter", "residual norm", "soln norm"))
 
-    for i in xrange(cg_iters):
+    for i in range(cg_iters):
         if callback is not None:
             callback(x)
-        if verbose: print fmtstr % (i, rdotr, np.linalg.norm(x))
+        if verbose: print(fmtstr % (i, rdotr, np.linalg.norm(x)))
         z = f_Ax(p)
         v = rdotr / p.dot(z)
         x += v*p
@@ -108,7 +112,7 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
 
     if callback is not None:
         callback(x)
-    if verbose: print fmtstr % (i+1, rdotr, np.linalg.norm(x))  # pylint: disable=W0631
+    if verbose: print(fmtstr % (i+1, rdotr, np.linalg.norm(x)))  # pylint: disable=W0631
     return x
 
 
@@ -118,18 +122,9 @@ Created on Thu Jan 18 19:24:22 2018
 
 @author: gamer
 """
-import numpy as np
-import tensorflow as tf
-import prettytensor as pt
-import scipy.signal
-import config
-
-def discount(x, gamma):
-    assert x.ndim >= 1
-    return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
     
     
-def line_search(f, x, fullstep, expected_improve_rate):
+def line_search(f, x, fullstep, expected_improve_rate, LN_ACCEPT_RATE):
     """ We perform the line search in direction of fullstep, we shrink the step 
         exponentially (multi by beta**n) until the objective improves.
         Without this line search, the algorithm occasionally computes
@@ -142,7 +137,7 @@ def line_search(f, x, fullstep, expected_improve_rate):
                     improvement_at_step_n/(expected_improve_rate*beta**n)>0.1
     """
     
-    accept_ratio = config.LN_ACCEPT_RATE
+    accept_ratio = LN_ACCEPT_RATE
     max_backtracks = 10
     fval = f(x)
     stepfrac=1
@@ -192,48 +187,7 @@ def choice_weighted(pi):
     return np.random.choice(np.arange(len(pi)), 1, p=pi)[0]
         
         
-class ValueFunction(object):
-    def __init__(self, session):
-        self.net = None
-        self.session = session
 
-    def create_net(self, shape):
-        print(shape)
-        self.x = tf.placeholder(tf.float32, shape=[None, shape], name="x")
-        self.y = tf.placeholder(tf.float32, shape=[None], name="y")
-        self.net = (pt.wrap(self.x).fully_connected(64,activation_fn=tf.nn.relu).
-                    fully_connected(64, activation_fn=tf.nn.relu).fully_connected(1))
-                    
-        self.net = tf.reshape(self.net, (-1, ))
-        l2 = (self.net - self.y) * (self.net - self.y)
-        self.train = tf.train.AdamOptimizer().minimize(l2)
-        
-        initialize_uninitialized(self.session)
-        
-
-    def _features(self, episode):
-        o = episode["states"].astype('float32')
-        o = o.reshape(o.shape[0], -1)
-        act = episode["actions_dist"].astype('float32')
-        l = len(episode["rewards"])
-        al = np.arange(l).reshape(-1, 1) / 10.0
-        ret = np.concatenate([o, act, al, np.ones((l, 1))], axis=1)
-        return ret
-
-    def fit(self, episodes):
-        featmat = np.concatenate([self._features(episode) for episode in episodes])
-        if self.net is None:
-            self.create_net(featmat.shape[1])
-        returns = np.concatenate([episode["returns"] for episode in episodes])
-        for _ in range(50):
-            self.session.run(self.train, {self.x: featmat, self.y: returns})
-
-    def predict(self, episode):
-        if self.net is None:
-            return np.zeros(len(episode["rewards"])) 
-        else:
-            ret = self.session.run(self.net, {self.x: self._features(episode)})
-            return np.reshape(ret, (ret.shape[0], ))
             
 def var_shape(x):
     out = [k.value for k in x.get_shape()]
@@ -293,21 +247,6 @@ class SetFromFlat(object):
     def __call__(self, theta):
         self.session.run(self.op, feed_dict={self.theta: theta})
         
-
-def initialize_uninitialized(sess):
-    global_vars          = tf.global_variables()
-    is_not_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
-    not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
-
-    if len(not_initialized_vars):
-        sess.run(tf.variables_initializer(not_initialized_vars))
-        
-def initialize_zeros(sess):
-    global_vars          = tf.global_variables()
-    assigns = []
-    for g in global_vars:
-        assigns.append(tf.assign(g, tf.zeros_like(g)))
-    sess.run(assigns)
     
 def write_dict(dic):
 
@@ -320,10 +259,7 @@ def write_dict(dic):
 
 
 def grayscale(frame):
-    R = frame[:,:, 0]
-    G = frame[:,:, 1]
-    B = frame[:,:, 2]
-    return (0.2989*R+0.5870*G + 0.1140*B)/255
+    return (0.2989*frame[:,:, 0]+0.5870*frame[:,:, 1] + 0.1140*frame[:,:, 2])/255
     
 def get_luminescence(frame):
 	R = frame[:,:, 0]
