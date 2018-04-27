@@ -49,9 +49,11 @@ class DQN(Agent):
     def reinforce(self,rollout):
         states = rollout["states"]
         actions = rollout["actions"]
-        rewards = rollout["rewards"]
+        rewards = rl_tools.discount(rollout["rewards"],self.discount)
         target_q = self.model.evaluate(states)
-        target_q[np.arange(len(actions)),actions] = rewards + self.discount*np.max(target_q,axis=1)
+        target_q[np.arange(len(actions)),actions] = rewards #+ self.discount*np.max(target_q,axis=1)
+        if rollout["terminated"]:
+            target_q[-1,actions[-1]] = rewards[-1]
         self.model.learn(states,target_q)
     
     def set_epsilon(self,eps):
