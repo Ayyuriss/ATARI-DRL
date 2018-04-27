@@ -107,14 +107,14 @@ class P_ConvNet(ConvNet):
     def create_network(self):
         super(P_ConvNet,self).create_network()
         self.add(layers.Dense(self.output_n,activation='softmax'))
-        self.compile(optimizer='rmsprop',loss='kullback_leibler_divergence')
+        self.compile(optimizer='sgd',loss='kullback_leibler_divergence')
         print(self.summary())
         
 class P_FCNet(FCNet):
     def create_network(self):
         super(P_FCNet,self).create_network()
         self.add(layers.Dense(self.output_n,activation='softmax'))
-        self.compile(optimizer='rmsprop',loss='kullback_leibler_divergence')
+        self.compile(optimizer='sgd',loss='kullback_leibler_divergence')
         print(self.summary())
 
 # ================================================================
@@ -125,7 +125,7 @@ class Q_ConvNet(ConvNet):
     def create_network(self):
         super(Q_ConvNet,self).create_network()
         self.add(layers.Dense(self.output_n,activation='linear'))
-        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        self.compile(optimizer='sgd',loss='mean_squared_error')
         print(self.summary())
         
 class Q_FCNet(FCNet):
@@ -134,7 +134,7 @@ class Q_FCNet(FCNet):
         super(Q_FCNet,self).create_network()
 
         self.add(layers.Dense(self.output_n,activation='linear'))
-        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        self.compile(optimizer='sgd',loss='mean_squared_error')
         print(self.summary())
 
 
