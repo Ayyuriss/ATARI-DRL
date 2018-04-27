@@ -26,7 +26,8 @@ class BaseNetwork(keras.Sequential):
     
     def create_network(self):
         raise NotImplementedError
-    def fit(self,X,Y,epochs=10,batch_size=30):
+        
+    def fit(self,X,Y,epochs=50,batch_size=50):
         print("Fitting the NN:",X.shape, Y.shape)
         super(BaseNetwork, self).fit(X,Y,batch_size,epochs)
     
