@@ -13,11 +13,11 @@ import rl_tools
 game = "breakout"
 env = ALE(game)
 #env = ALE("seaquest.bin")
-agent = DQN(env.states_dim,env.actions_n,'FC',0.99,.05)
+agent = DQN(env.states_dim,env.actions_n,'CONV',0.99,.05)
 #env.step(0)
 print(env.states_dim)
 
 for _ in range(10):
-    rollout = rl_tools.rollouts(env, agent, 10, 700)
+    rollout = rl_tools.rollouts(env, agent, 20, 700)
     agent.reinforce(rollout)
     agent.save("leaneard"+game)

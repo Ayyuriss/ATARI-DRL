@@ -60,12 +60,12 @@ class BaseNetwork(keras.Sequential):
 class ConvNet(BaseNetwork):
     
     def create_network(self):
-        n_filters_1 = 16
+        n_filters_1 = 8
         k_size_1 = 4
         stride_1 = 2
         
-        n_filters_2 = 32
-        k_size_2 = 3
+        n_filters_2 = 16
+        k_size_2 = 4
         stride_2 = 2
         
         self.add(layers.Conv2D(n_filters_1,k_size_1,strides=stride_1,activation='relu',input_shape=self.input_dim))
