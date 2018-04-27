@@ -51,7 +51,7 @@ class DQN(Agent):
         actions = rollout["actions"]
         rewards = rl_tools.discount(rollout["rewards"],self.discount)
         target_q = self.model.evaluate(states)
-        target_q[np.arange(len(actions)),actions] = rewards #+ self.discount*np.max(target_q,axis=1)
+        target_q[np.arange(len(actions)),actions] = (target_q[np.arange(len(actions)),actions]+rewards)/2 #+ self.discount*np.max(target_q,axis=1)
         
 #        target_q[-1,actions[-1]] = rewards[-1]
         self.model.learn(states,target_q)
