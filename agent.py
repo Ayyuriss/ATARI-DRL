@@ -8,7 +8,7 @@ Created on Fri Apr 20 12:27:48 2018
 import numpy as np
 import DeepFunctions
 import rl_tools
-
+import keras.backend as K
 class Agent(object):
     
     def __init__(self, model, model_type):
@@ -49,7 +49,7 @@ class DQN(Agent):
     def reinforce(self,rollout):
         states = rollout["states"]
         actions = rollout["actions"]
-        rewards = rl_tools.discount(rollout["rewards"],self.discount)
+        rewards = rollout["rewards"]
         not_final = np.logical_not(rollout["terminated"])
         target_q = self.model.evaluate(states)
         target_q[np.arange(len(actions)),actions] = rewards 
@@ -63,7 +63,6 @@ class DQN(Agent):
     
         
     
-"""
 
 class TRPO(Agent):
     
@@ -77,16 +76,15 @@ class TRPO(Agent):
         self.policy = policy
         self.cfg = cfg
 
-        probtype = policy.type
-        params = policy.trainable_variables
+        params = self.policy.trainable_variables
         
 
-        ob_no = policy.states_dim
+        ob_no = policy.input
         act_na = policy.actions_n
         adv_n = T.vector("adv_n")
 
         # Probability distribution:
-        prob_np = policy.get_output()
+        prob_np = policy.output
         oldprob_np = probtype.prob_variable()
 
         logp_n = probtype.loglikelihood(act_na, prob_np)
@@ -97,9 +95,9 @@ class TRPO(Agent):
         surr = (-1.0 / N) * T.exp(logp_n - oldlogp_n).dot(adv_n)
         pg = flatgrad(surr, params)
 
-        prob_np_fixed = theano.gradient.disconnected_grad(prob_np)
+        prob_np_fixed = K.stop_gradient(prob_np)
         kl_firstfixed = probtype.kl(prob_np_fixed, prob_np).sum()/N
-        grads = T.grad(kl_firstfixed, params)
+        grads = K.gradients(kl_firstfixed, params)
         flat_tangent = T.fvector(name="flat_tan")
         shapes = [var.get_value(borrow=True).shape for var in params]
         start = 0
@@ -120,14 +118,14 @@ class TRPO(Agent):
 
         args = [ob_no, act_na, adv_n, oldprob_np]
 
-        self.compute_policy_gradient = theano.function(args, pg, **FNOPTS)
-        self.compute_losses = theano.function(args, losses, **FNOPTS)
-        self.compute_fisher_vector_product = theano.function([flat_tangent] + args, fvp, **FNOPTS)
+        self.compute_policy_gradient = K.function(args, pg, **FNOPTS)
+        self.compute_losses = K.function(args, losses, **FNOPTS)
+        self.compute_fisher_vector_product = K.function([flat_tangent] + args, fvp, **FNOPTS)
 
-    def __call__(self, paths):
-        cfg = self.cfg
-        prob_np = concat([path["prob"] for path in paths])
-        ob_no = concat([path["observation"] for path in paths])
+    def __call__(self, rollout):
+        
+        prob_np = rollout["proba"]
+        ob_no = rollout["states"]
         action_na = concat([path["action"] for path in paths])
         advantage_n = concat([path["advantage"] for path in paths])
         args = (ob_no, action_na, advantage_n, prob_np)
@@ -138,19 +136,19 @@ class TRPO(Agent):
         g = self.compute_policy_gradient(*args)
         losses_before = self.compute_losses(*args)
         if np.allclose(g, 0):
-            print "got zero gradient. not updating"
+            print("got zero gradient. not updating")
         else:
             stepdir = cg(fisher_vector_product, -g)
             shs = .5*stepdir.dot(fisher_vector_product(stepdir))
             lm = np.sqrt(shs / cfg["max_kl"])
-            print "lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g)
+            print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
             neggdotstepdir = -g.dot(stepdir)
             def loss(th):
                 self.set_params_flat(th)
                 return self.compute_losses(*args)[0] #pylint: disable=W0640
             success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
-            print "success", success
+            print("success", success)
             self.set_params_flat(theta)
         losses_after = self.compute_losses(*args)
 
@@ -160,4 +158,3 @@ class TRPO(Agent):
             out[lname+"_after"] = lafter
         return out
 
-"""
