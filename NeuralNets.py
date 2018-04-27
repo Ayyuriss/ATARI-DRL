@@ -24,9 +24,10 @@ class BaseNetwork(keras.Sequential):
         self.output_n = actions_n
         self.create_network()
     
-    def create_network():
+    def create_network(self):
         raise NotImplementedError
     def fit(self,X,Y,epochs=10,batch_size=30):
+        print("Fitting the NN:",X.shape, Y.shape)
         super(BaseNetwork, self).fit(X,Y,batch_size,epochs)
     
     @property
@@ -81,9 +82,9 @@ class FCNet(BaseNetwork):
     def create_network(self):
         self.add(layers.MaxPooling2D(input_shape = self.input_dim))
         self.add(layers.Flatten())
-        self.add(layers.Dense(2048,activation='relu'))
-        self.add(layers.Dense(2048,activation='tanh'))
-        #self.add(layers.Dense(1024,activation='sigmoid'))
+        self.add(layers.Dense(1024,activation='relu'))
+        #self.add(layers.Dense(2048,activation='tanh'))
+        self.add(layers.Dense(1024,activation='sigmoid'))
         self.add(layers.Dense(1024,activation='relu'))
         self.add(layers.Dense(512,activation='softplus'))
 
@@ -127,7 +128,7 @@ class Q_ConvNet(ConvNet):
         self.compile(optimizer='rmsprop',loss='mean_squared_error')
         print(self.summary())
         
-class Q_FCNet(BaseNetwork):
+class Q_FCNet(FCNet):
 
     def create_network(self):
         super(Q_FCNet,self).create_network()

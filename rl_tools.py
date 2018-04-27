@@ -257,9 +257,12 @@ def write_dict(dic):
         fo.write(str(k) + ' >>> '+ str(v) + '\n')
     fo.close()
 
-
+def process_frame(img,size):
+    return np.expand_dims(transform.resize(grayscale(img),size,mode='reflect'),axis=2)
 def grayscale(frame):
-    return (0.2989*frame[:,:, 0]+0.5870*frame[:,:, 1] + 0.1140*frame[:,:, 2])/255
+    return (0.2989*frame[:,:, 0]
+            + 0.5870*frame[:,:, 1] 
+            + 0.1140*frame[:,:, 2])/255
     
 def get_luminescence(frame):
 	R = frame[:,:, 0]
@@ -269,3 +272,53 @@ def get_luminescence(frame):
 
 def show(frame):
     imshow(frame)
+
+
+def rollout(env, agent, len_episode):
+    """
+    Simulate the env and agent for timestep_limit steps
+    """
+    env.reset()
+    state,_,start_lives = env.step(0)
+    
+    terminated = False
+
+    episode = {"state":[],"action":[],"reward":[],"terminated":[]}
+    
+    for _ in range(len_episode):
+        episode["state"].append(state)
+        action = agent.act(state)
+        
+        episode["action"].append(action)
+        
+        state, rew, done = env.step(action)
+        
+        if done:
+            episode["reward"].append(-sum(episode["reward"]))
+            terminated = True
+            break
+        else:
+            episode["reward"].append(rew)
+    episode = {k:np.array(v) for (k,v) in episode.items()}
+    episode["terminated"] = terminated
+    return episode
+
+def rollouts(env, agent, num_episodes, len_episode):
+    episodes = []
+    for _ in range(num_episodes):
+        episodes.append(rollout(env, agent, len_episode))
+    states = np.concatenate([episode["state"] for episode in episodes], axis = 0)
+    actions = np.concatenate([episode["action"] for episode in episodes]).astype(int)
+    rewards = np.concatenate([episode["reward"] for episode in episodes])
+    
+    return {"states":states, "actions":actions, "rewards": rewards}
+def game_name(name):
+    idx = name.find(".")
+    if idx==-1:
+        return name+".bin"
+    else:
+        if name[idx:]=='.bin':
+            return name
+        else:
+            raise(NameError,name)
+            return ""

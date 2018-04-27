@@ -13,8 +13,6 @@ class Agent(object):
     
     def __init__(self, model, model_type):
         
-        self.epsilon = epsilon
-        
         assert model_type in ["Q","Policy"]
         
         self.model = model
@@ -41,17 +39,27 @@ class DQN(Agent):
         super(DQN,self).__init__(model, "Q")
         self.eps = epsilon
         self.discount = gamma
-    def act(self,state):
+    def act(self,state,train=True):
+        if train:
+            if np.random.rand()<self.eps:
+                return np.random.choice(range(self.actions_n))
+         
+        return np.argmax(self.model.evaluate(state))
+    
+    def reinforce(self,rollout):
+        states = rollout["states"]
+        actions = rollout["actions"]
+        rewards = rollout["rewards"]
+        target_q = self.model.evaluate(states)
+        target_q[np.arange(len(actions)),actions] = rewards + self.discount*np.max(target_q,axis=1)
+        self.model.learn(states,target_q)
+    
+    def set_epsilon(self,eps):
+        self.eps = eps
+    
         
-        return np.argmax(self.model.evalute(state))
     
-    def reinforce(self,episodes):
-        pass
-    
-    
-        
-    
-
+"""
 
 class TRPO(Agent):
     
@@ -148,3 +156,4 @@ class TRPO(Agent):
             out[lname+"_after"] = lafter
         return out
 
+"""

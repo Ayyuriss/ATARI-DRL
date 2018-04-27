@@ -67,7 +67,9 @@ class DeepQ(BaseDeep):
             self.net = NeuralNets.Q_ConvNet(self.states_dim, self.actions_n)
         else:
             raise (NotImplementedError, self.network_type)
-            
+        self.net.zero_initializer()
+    def learn(self,states,target_q):
+        self.net.fit(states,target_q)
             
 # ================================================================
 # Value Function for baseline
