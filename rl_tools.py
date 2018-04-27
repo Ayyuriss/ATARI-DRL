@@ -290,16 +290,13 @@ def rollout(env, agent, len_episode):
         episode["action"].append(action)
         
         state, rew, done = env.step(action)
-        
+
+
+        episode["reward"].append(rew)        
+        episode["terminated"].append(done)
         if done:
-            episode["reward"].append(-sum(episode["reward"]))
-            episode["terminated"].append(True)
             break
-        else:
-            episode["reward"].append(rew)
-            episode["terminated"].append(True)
     episode = {k:np.array(v) for (k,v) in episode.items()}
-    
     return episode
 
 def argmax(vect):
@@ -313,7 +310,7 @@ def rollouts(env, agent, num_episodes, len_episode):
         episodes.append(rollout(env, agent, len_episode))
     states = np.concatenate([episode["state"] for episode in episodes], axis = 0)
     actions = np.concatenate([episode["action"] for episode in episodes]).astype(int)
-    rewards = np.concatenate([discount(episode["reward"],agent.discount) for episode in episodes])
+    rewards = np.concatenate([episode["reward"] for episode in episodes])
     terminated = np.concatenate([episode["terminated"] for episode in episodes])
     return {"states":states, "actions":actions, "rewards": rewards,"terminated":terminated}
 def game_name(name):
