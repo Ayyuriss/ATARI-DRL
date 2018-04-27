@@ -7,7 +7,7 @@ Created on Fri Apr 20 12:27:48 2018
 """
 import numpy as np
 import DeepFunctions
-
+import rl_tools
 
 class Agent(object):
     
@@ -44,7 +44,7 @@ class DQN(Agent):
             if np.random.rand()<self.eps:
                 return np.random.choice(range(self.actions_n))
          
-        return np.argmax(self.model.evaluate(state))
+        return rl_tools.argmax(self.model.evaluate(state))
     
     def reinforce(self,rollout):
         states = rollout["states"]

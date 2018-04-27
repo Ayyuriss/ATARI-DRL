@@ -303,6 +303,10 @@ def rollout(env, agent, len_episode):
     episode["terminated"] = terminated
     return episode
 
+def argmax(vect):
+    mx = max(vect)
+    idx = np.where(vect==mx)[0]
+    return np.random.choice(idx)
 def rollouts(env, agent, num_episodes, len_episode):
     episodes = []
     for _ in range(num_episodes):
