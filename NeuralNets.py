@@ -61,20 +61,18 @@ class BaseNetwork(keras.Sequential):
 class ConvNet(BaseNetwork):
     
     def create_network(self):
-        n_filters_1 = 8
-        k_size_1 = 4
-        stride_1 = 2
+        n_filters_1 = 16
+        k_size_1 = 8
+        stride_1 = 4
         
-        n_filters_2 = 16
+        n_filters_2 = 32
         k_size_2 = 4
         stride_2 = 2
         
-        self.add(layers.Conv2D(n_filters_1,k_size_1,strides=stride_1,activation='relu',input_shape=self.input_dim))
-        self.add(layers.MaxPooling2D())
-        self.add(layers.Conv2D(n_filters_2,k_size_2,strides=stride_2,activation='relu'))
+        self.add(layers.Conv2D(n_filters_1,k_size_1,strides=stride_1,activation='softplus',input_shape=self.input_dim))
+        self.add(layers.Conv2D(n_filters_2,k_size_2,strides=stride_2,activation='softplus'))
         self.add(layers.Flatten())
-        self.add(layers.Dense(256,activation='softplus'))
-        self.add(layers.Dense(128,activation='softplus'))
+        self.add(layers.Dense(256,activation='relu'))
 # ================================================================
 #  Fully Connected structures
 # ================================================================

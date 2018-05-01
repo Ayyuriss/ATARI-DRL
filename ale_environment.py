@@ -8,7 +8,7 @@ from ale_python_interface import ALEInterface
 import rl_tools
 import numpy as np
 
-OPTIONS = {"IMAGES_SIZE":(48,48)}
+OPTIONS = {"IMAGES_SIZE":(64,64)}
 class ALE(ALEInterface):
     
     def __init__(self,rom_file, skip_frame = 3, render=True):

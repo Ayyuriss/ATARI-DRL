@@ -305,8 +305,10 @@ def argmax(vect):
     return np.random.choice(idx)
 
 def rollouts(env, agent, num_episodes, len_episode):
+    print("Starting rollouts")    
     episodes = []
-    for _ in range(num_episodes):
+    for i in range(num_episodes):
+        print("Rollout %d/%d"%(i,num_episodes))
         episodes.append(rollout(env, agent, len_episode))
     states = np.concatenate([episode["state"] for episode in episodes], axis = 0)
     actions = np.concatenate([episode["action"] for episode in episodes]).astype(int)

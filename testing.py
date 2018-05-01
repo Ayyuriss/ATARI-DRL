@@ -17,7 +17,13 @@ agent = DQN(env.states_dim,env.actions_n,'CONV',0.99,.05)
 #env.step(0)
 print(env.states_dim)
 
-for _ in range(10):
-    rollout = rl_tools.rollouts(env, agent, 50, 700)
+for _ in range(100):
+    rollout = rl_tools.rollouts(env, agent, 100, 700)
     agent.reinforce(rollout)
     agent.save("leaneard"+game)
+
+
+
+
+
+
