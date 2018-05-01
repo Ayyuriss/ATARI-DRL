@@ -82,7 +82,7 @@ class ValueFunction(BaseDeep):
     def _features(self, episode):
         o = episode["states"].astype('float32')
         o = o.reshape(np.prod(o.shape[0]), -1)
-        act = episode["actions_dist"].astype('float32')
+        act = episode["proba"].astype('float32')
         l = len(episode["rewards"])
         al = np.arange(l).reshape(-1, 1) / 10.0
         ret = np.concatenate([o, act, al, np.ones((l, 1))], axis=1)

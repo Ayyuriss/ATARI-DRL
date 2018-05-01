@@ -5,8 +5,9 @@ Created on Thu Jan 18 12:59:20 2018
 @author: gamer
 """
 from ale_python_interface import ALEInterface
-import rl_tools
+import utils.env as utils
 import numpy as np
+
 
 OPTIONS = {"IMAGES_SIZE":(84,84)}
 class ALE(ALEInterface):
@@ -35,13 +36,13 @@ class ALE(ALEInterface):
         self.setFloat(str.encode('repeat_action_probability'), 0.0)        
         self.setBool(str.encode('sound'), False)
         self.setBool(str.encode('display_screen'), render)
-        self.loadROM(str.encode("./roms/"+rl_tools.game_name(rom_file)))
+        self.loadROM(str.encode("./roms/"+utils.game_name(rom_file)))
         
     def save_current_frame(self):
-        self._current_frame = rl_tools.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])
+        self._current_frame = utils.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])
     
     def get_current_state(self):
-        new_frame = rl_tools.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])
+        new_frame = utils.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])
         return np.concatenate([self._current_frame,new_frame],axis = -1)
     
     def step(self,action):

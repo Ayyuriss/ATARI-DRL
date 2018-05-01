@@ -7,8 +7,11 @@ Created on Fri Apr 20 12:27:48 2018
 """
 import numpy as np
 import DeepFunctions
-import rl_tools
+import utils.agent as utils
+import utils.math as m_utils
 import keras.backend as K
+
+
 class Agent(object):
     
     def __init__(self, model, model_type):
@@ -44,7 +47,7 @@ class DQN(Agent):
             if np.random.rand()<self.eps:
                 return np.random.choice(range(self.actions_n))
          
-        return rl_tools.argmax(self.model.evaluate(state))
+        return utils.argmax(self.model.evaluate(state))
     
     def reinforce(self,rollout):
         states = rollout["states"]
@@ -55,7 +58,7 @@ class DQN(Agent):
         target_q[np.arange(len(actions)),actions] = rewards 
         target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
         
-#        target_q[-1,actions[-1]] = rewards[-1]
+
         self.model.learn(states,target_q)
     
     def set_epsilon(self,eps):
@@ -71,90 +74,96 @@ class TRPO(Agent):
         ("max_kl", float, 1e-2, "KL divergence between old and new policy (averaged over state-space)"),
     ]
 
-    def __init__(self, policy, usercfg):
+    def __init__(self, states_dim, actions_n, neural_type, gamma):
 
-        self.policy = policy
-        self.cfg = cfg
-
-        params = self.policy.trainable_variables
+        self.policy = DeepFunctions.DeepPolicy(states_dim, actions_n, neural_type)
         
+        self.discount = gamma
+        
+        self.params = self.policy.variables
+        
+        self.Flaten = utils.Flattener(self.params)
 
-        ob_no = policy.input
-        act_na = policy.actions_n
-        adv_n = T.vector("adv_n")
+        states = self.policy.input
+        actions = K.placeholder(ndim=1, dtype = 'int32')
+        advantages = K.placeholder(ndim=1)
 
-        # Probability distribution:
-        prob_np = policy.output
-        oldprob_np = probtype.prob_variable()
+        old_pi = K.placeholder(shape=(None, self.policy.actions_n))
+        current_pi = self.policy.output
 
-        logp_n = probtype.loglikelihood(act_na, prob_np)
-        oldlogp_n = probtype.loglikelihood(act_na, oldprob_np)
-        N = ob_no.shape[0]
+        log_pi = utils.loglikelihood(actions, current_pi)
+        old_log_pi = utils.loglikelihood(actions, old_pi)
+
+        N = K.cast(K.shape(states)[0],dtype='float32')
 
         # Policy gradient:
-        surr = (-1.0 / N) * T.exp(logp_n - oldlogp_n).dot(adv_n)
-        pg = flatgrad(surr, params)
 
-        prob_np_fixed = K.stop_gradient(prob_np)
-        kl_firstfixed = probtype.kl(prob_np_fixed, prob_np).sum()/N
-        grads = K.gradients(kl_firstfixed, params)
-        flat_tangent = T.fvector(name="flat_tan")
-        shapes = [var.get_value(borrow=True).shape for var in params]
-        start = 0
-        tangents = []
-        for shape in shapes:
-            size = np.prod(shape)
-            tangents.append(T.reshape(flat_tangent[start:start+size], shape))
-            start += size
-        gvp = T.add(*[T.sum(g*tangent) for (g, tangent) in zipsame(grads, tangents)]) #pylint: disable=E1111
+        surr = (-1.0 / N) * K.sum( K.exp(log_pi - old_log_pi)*advantages)
+        
+        pg = self.Flaten.flatgrad(self.params)
+
+        current_pi_fixed = K.stop_gradient(current_pi)
+        kl_firstfixed = K.sum(utils.kl(current_pi_fixed, current_pi))/N
+        grads = self.Flaten.flatgrad(kl_firstfixed)
+        flat_tangent = K.placeholder(ndim=1)
+        
+        gvp = K.sum(grads*flat_tangent)
         # Fisher-vector product
-        fvp = flatgrad(gvp, params)
+        
+        fvp = self.Flaten.flatgrad(gvp)
 
-        ent = probtype.entropy(prob_np).mean()
-        kl = probtype.kl(oldprob_np, prob_np).mean()
+        ent = K.mean(utils.entropy(current_pi))
+        kl = K.mean(utils.kl(old_pi, current_pi))
 
         losses = [surr, kl, ent]
         self.loss_names = ["surr", "kl", "ent"]
 
-        args = [ob_no, act_na, adv_n, oldprob_np]
+        args = [states, actions, advantages, old_log_pi]
 
-        self.compute_policy_gradient = K.function(args, pg, **FNOPTS)
-        self.compute_losses = K.function(args, losses, **FNOPTS)
-        self.compute_fisher_vector_product = K.function([flat_tangent] + args, fvp, **FNOPTS)
+        self.compute_policy_gradient = K.function(args, [pg])
+        self.compute_losses = K.function(args, losses)
+        self.compute_fisher_vector_product = K.function([flat_tangent] + args, [fvp])
 
     def __call__(self, rollout):
         
         prob_np = rollout["proba"]
         ob_no = rollout["states"]
-        action_na = concat([path["action"] for path in paths])
-        advantage_n = concat([path["advantage"] for path in paths])
+        action_na = rollout["actions"]
+        advantage_n = rollout["advantages"]
         args = (ob_no, action_na, advantage_n, prob_np)
 
         thprev = self.get_params_flat()
         def fisher_vector_product(p):
-            return self.compute_fisher_vector_product(p, *args)+cfg["cg_damping"]*p #pylint: disable=E1101,W0640
+            return self.compute_fisher_vector_product(p, *args)+self.options["cg_damping"]*p
+        
         g = self.compute_policy_gradient(*args)
         losses_before = self.compute_losses(*args)
         if np.allclose(g, 0):
             print("got zero gradient. not updating")
         else:
-            stepdir = cg(fisher_vector_product, -g)
+            stepdir = m_utils.conjugate_gradient(fisher_vector_product, -g)
             shs = .5*stepdir.dot(fisher_vector_product(stepdir))
-            lm = np.sqrt(shs / cfg["max_kl"])
+            lm = np.sqrt(shs / self.options["max_kl"])
             print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
             neggdotstepdir = -g.dot(stepdir)
             def loss(th):
                 self.set_params_flat(th)
                 return self.compute_losses(*args)[0] #pylint: disable=W0640
-            success, theta = linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
+            success, theta = m_utils.line_search(loss, thprev, fullstep, neggdotstepdir/lm)
             print("success", success)
             self.set_params_flat(theta)
         losses_after = self.compute_losses(*args)
 
-        out = OrderedDict()
-        for (lname, lbefore, lafter) in zipsame(self.loss_names, losses_before, losses_after):
+        out = {}
+        for (lname, lbefore, lafter) in zip(self.loss_names, losses_before, losses_after):
             out[lname+"_before"] = lbefore
             out[lname+"_after"] = lafter
         return out
-
+    
+    def act(self,state):
+        
+        proba = self.policy.evaluate(state)
+        action = utils.choice_weighted(proba)
+        print(action)
+        return action,proba
