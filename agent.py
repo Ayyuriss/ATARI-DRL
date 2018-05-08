@@ -16,9 +16,13 @@ class Agent(object):
     
     def __init__(self, model, model_type):
         
-        assert model_type in ["Q","Policy"]
+        self.type = model_type
         
-        self.model = model
+        assert self.type in ["Q","Policy"]
+        if self.type == "Q":
+            self.model = model
+        else:
+            self.policy = model
         self.actions_n = model.actions_n
         
     def act(self,state,train=False):
@@ -30,9 +34,16 @@ class Agent(object):
         raise NotImplementedError
         
     def save(self,name):
-        self.model.save(name)
+        if self.type == "Q":
+            self.model.save(name)
+        else:
+            self.policy.save(name)
+        
     def load(self,name):
-        self.model.load(name)
+        if self.type == "Q":
+            self.model.load(name)
+        else:
+            self.policy.load(name)
 
 
 class DQN(Agent):
@@ -50,11 +61,11 @@ class DQN(Agent):
         return utils.argmax(self.model.evaluate(state))
     
     def reinforce(self,rollout):
-        states = rollout["states"]
-        actions = rollout["actions"]
-        rewards = rollout["rewards"]
+        states = rollout["state"]
+        actions = rollout["action"]
+        rewards = rollout["reward"]
         not_final = np.logical_not(rollout["terminated"])
-        target_q = self.model.evaluate(states)
+        target_q = rollout["output"]
         target_q[np.arange(len(actions)),actions] = rewards 
         target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
         
@@ -76,68 +87,76 @@ class TRPO(Agent):
 
     def __init__(self, states_dim, actions_n, neural_type, gamma):
 
-        self.policy = DeepFunctions.DeepPolicy(states_dim, actions_n, neural_type)
+        policy = DeepFunctions.DeepPolicy(states_dim, actions_n, neural_type)
+        super(TRPO, self).__init__(policy, "Policy")
         
         self.discount = gamma
-        
-        self.params = self.policy.variables
-        
+        self.params = self.model.variables
         self.Flaten = utils.Flattener(self.params)
 
-        states = self.policy.input
-        actions = K.placeholder(ndim=1, dtype = 'int32')
-        advantages = K.placeholder(ndim=1)
+        self.setup_agent()
+    
+    def setup_agent(self):
+        
+        self.states = self.model.input
+        self.actions = K.placeholder(ndim=1, dtype = 'int32')
+        self.advantages = K.placeholder(ndim=1)
 
         old_pi = K.placeholder(shape=(None, self.policy.actions_n))
+
         current_pi = self.policy.output
 
-        log_pi = utils.loglikelihood(actions, current_pi)
-        old_log_pi = utils.loglikelihood(actions, old_pi)
+        log_pi = utils.loglikelihood(self.actions, current_pi)
+        old_log_pi = utils.loglikelihood(self.actions, old_pi)
 
-        N = K.cast(K.shape(states)[0],dtype='float32')
+        N = K.cast(K.shape(self.states)[0],dtype='float32')
 
         # Policy gradient:
 
-        surr = (-1.0 / N) * K.sum( K.exp(log_pi - old_log_pi)*advantages)
-        
+        surr = (-1.0 / N) * K.sum( K.exp(log_pi - old_log_pi)*self.advantages)
         pg = self.Flaten.flatgrad(self.params)
 
         current_pi_fixed = K.stop_gradient(current_pi)
         kl_firstfixed = K.sum(utils.kl(current_pi_fixed, current_pi))/N
         grads = self.Flaten.flatgrad(kl_firstfixed)
+        
         flat_tangent = K.placeholder(ndim=1)
-        
         gvp = K.sum(grads*flat_tangent)
-        # Fisher-vector product
         
+        
+        # Fisher-vector product
         fvp = self.Flaten.flatgrad(gvp)
-
         ent = K.mean(utils.entropy(current_pi))
         kl = K.mean(utils.kl(old_pi, current_pi))
 
         losses = [surr, kl, ent]
         self.loss_names = ["surr", "kl", "ent"]
 
-        args = [states, actions, advantages, old_log_pi]
 
+        args = [self.states, self.actions, self.advantages, old_log_pi]
         self.compute_policy_gradient = K.function(args, [pg])
         self.compute_losses = K.function(args, losses)
         self.compute_fisher_vector_product = K.function([flat_tangent] + args, [fvp])
 
     def __call__(self, rollout):
         
-        prob_np = rollout["proba"]
-        ob_no = rollout["states"]
-        action_na = rollout["actions"]
-        advantage_n = rollout["advantages"]
-        args = (ob_no, action_na, advantage_n, prob_np)
+        proba = rollout["proba"]
+        states = rollout["states"]
+        actions = rollout["actions"]
+        
+        advantages = rollout["advantages"]
+        
+        args = (states, actions, advantages, proba)
 
-        thprev = self.get_params_flat()
+        thprev = self.Flaten.get()
+        
         def fisher_vector_product(p):
             return self.compute_fisher_vector_product(p, *args)+self.options["cg_damping"]*p
         
         g = self.compute_policy_gradient(*args)
+        
         losses_before = self.compute_losses(*args)
+        
         if np.allclose(g, 0):
             print("got zero gradient. not updating")
         else:
@@ -148,11 +167,12 @@ class TRPO(Agent):
             fullstep = stepdir / lm
             neggdotstepdir = -g.dot(stepdir)
             def loss(th):
-                self.set_params_flat(th)
-                return self.compute_losses(*args)[0] #pylint: disable=W0640
+                self.Flaten.set(th)
+                return self.compute_losses(*args)[0]
+            
             success, theta = m_utils.line_search(loss, thprev, fullstep, neggdotstepdir/lm)
             print("success", success)
-            self.set_params_flat(theta)
+            self.Flaten.set(theta)
         losses_after = self.compute_losses(*args)
 
         out = {}
@@ -165,5 +185,5 @@ class TRPO(Agent):
         
         proba = self.policy.evaluate(state)
         action = utils.choice_weighted(proba)
-        print(action)
-        return action,proba
+        # print(action)
+        return action

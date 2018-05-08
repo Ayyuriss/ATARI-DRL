@@ -50,11 +50,11 @@ class BaseDeep(object):
 
 class DeepPolicy(BaseDeep):
     def setup_model(self):
-        if self.network_type in ['FC','CONV']:
+        if self.network_type in ['FC','CNN']:
             if self.network_type =='FC':
                 self.net = NeuralNets.P_FCNet(self.states_dim, self.actions_n)
-            elif self.network_type =='CONV':
-                self.net = NeuralNets.P_ConvNet(self.states_dim, self.actions_n)
+            elif self.network_type =='CNN':
+                self.net = NeuralNets.P_CNNet(self.states_dim, self.actions_n)
         else:
             raise (NotImplementedError, self.network_type)
    
@@ -63,8 +63,8 @@ class DeepQ(BaseDeep):
     def setup_model(self):
         if self.network_type =='FC':
             self.net = NeuralNets.Q_FCNet(self.states_dim, self.actions_n)
-        elif self.network_type =='CONV':
-            self.net = NeuralNets.Q_ConvNet(self.states_dim, self.actions_n)
+        elif self.network_type =='CNN':
+            self.net = NeuralNets.Q_CNNet(self.states_dim, self.actions_n)
         else:
             raise (NotImplementedError, self.network_type)
         self.net.zero_initializer()
@@ -80,12 +80,12 @@ class ValueFunction(BaseDeep):
         self.net = NeuralNets.SingleFCNet(self.states_dim,self.actions_n)                           
         
     def _features(self, episode):
-        o = episode["states"].astype('float32')
-        o = o.reshape(np.prod(o.shape[0]), -1)
-        act = episode["proba"].astype('float32')
-        l = len(episode["rewards"])
-        al = np.arange(l).reshape(-1, 1) / 10.0
-        ret = np.concatenate([o, act, al, np.ones((l, 1))], axis=1)
+        states = episode["state"].astype('float32')
+        states = states.reshape(states.shape[0], -1)
+        proba = episode["output"].astype('float32')
+        n = len(episode["reward"])
+        al = np.arange(n).reshape(-1, 1) / 10.0
+        ret = np.concatenate([states, proba, al, np.ones((n, 1))], axis=1)
         return ret
 
     def fit(self, episodes):

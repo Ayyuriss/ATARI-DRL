@@ -36,3 +36,19 @@ def game_name(name):
         else:
             raise(NameError,name)
             return ""
+        
+def display_filters(filter_mat, n_col):
+    
+    shape = filter_mat.shape
+    cols = n_col
+    rows = shape[-1]//cols
+    
+    screen = np.zeros((shape[0]*rows,shape[1]*cols))
+    
+    for i in range(rows):
+        for j in range(cols):
+            screen[shape[0]*i:shape[0]*(i+1),shape[1]*j:shape[1]*(j+1)] = filter_mat[:,:,i*cols+j]
+    imshow(screen)
+    return screen
+
+    
