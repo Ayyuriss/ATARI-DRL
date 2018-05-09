@@ -10,15 +10,17 @@ import numpy as np
 
 
 OPTIONS = {"IMAGES_SIZE":(84,84)}
+CROP = {"breakout":(30,10,6,6)}
 class ALE(ALEInterface):
     
-    def __init__(self,rom_file, num_steps= 4, skip_frame = 1, render=True):
+    def __init__(self,game_name, num_steps= 4, skip_frame = 1, render=True):
         
         super(ALE, self).__init__()    
         
+        self.crop = CROP[game_name]
         self.num_steps = num_steps
         self.skip_frame = skip_frame
-        self.load_rom(rom_file,render)
+        self.load_rom(game_name,render)
         self.params()
         self.save_current_frame()
     
@@ -39,7 +41,10 @@ class ALE(ALEInterface):
         self.loadROM(str.encode("./roms/"+utils.game_name(rom_file)))
         
     def save_current_frame(self):
-        self._current_frame = utils.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])
+        up,down,left,right = self.crop
+        self._current_frame = utils.process_frame(
+                self.getScreenRGB()[up:-down,left:-right],
+                            OPTIONS["IMAGES_SIZE"])
     
     def get_current_state(self):
         new_frame = utils.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])

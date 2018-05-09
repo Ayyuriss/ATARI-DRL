@@ -7,7 +7,7 @@ Created on Thu Jan 18 13:07:46 2018
 
 import NeuralNets
 import numpy as np
-import keras as kr
+
 
 # ================================================================
 # Base class for Q and deep Policy
@@ -44,31 +44,39 @@ class BaseDeep(object):
     @property
     def output(self):
         return self.net.output
+
 # ================================================================
 # Object class for Q and policy
 # ================================================================
 
 class DeepPolicy(BaseDeep):
+    
     def setup_model(self):
-        if self.network_type in ['FC','CNN']:
-            if self.network_type =='FC':
-                self.net = NeuralNets.P_FCNet(self.states_dim, self.actions_n)
-            elif self.network_type =='CNN':
-                self.net = NeuralNets.P_CNNet(self.states_dim, self.actions_n)
+        
+        assert self.network_type in ['FC','CNN']
+            
+        if self.network_type =='FC':
+            self.net = NeuralNets.Policy_FCNet(self.states_dim, self.actions_n)
         else:
-            raise (NotImplementedError, self.network_type)
+            self.net = NeuralNets.Policy_CNNet(self.states_dim, self.actions_n)
+      
    
         
 class DeepQ(BaseDeep):
+    
     def setup_model(self):
+        
+        assert self.network_type in ['FC','CNN']
+        
         if self.network_type =='FC':
             self.net = NeuralNets.Q_FCNet(self.states_dim, self.actions_n)
-        elif self.network_type =='CNN':
-            self.net = NeuralNets.Q_CNNet(self.states_dim, self.actions_n)
         else:
-            raise (NotImplementedError, self.network_type)
+            self.net = NeuralNets.Q_CNNet(self.states_dim, self.actions_n)
+        
         self.net.zero_initializer()
+            
     def learn(self,states,target_q):
+        
         self.net.fit(states,target_q)
             
 # ================================================================

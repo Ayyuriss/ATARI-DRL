@@ -30,10 +30,6 @@ def positify(y):
     y2 = (y - mins)/(maxs-mins)
     return y2
 
-    
-
-
-
 
 def write_dict(dic):
 
@@ -72,97 +68,9 @@ def rollout(env, agent, len_episode):
 
 
 
-class Roller(object):
-    
-    def __init__(self,env, agent, max_steps):
-        
-        self.env = env
-        self.agent = agent
-        self.discount = agent.discount
-        self.max_length = max_steps
-        self.policy = (agent.type == 'Policy')
-        
-#        self.memory = {"n": [], "state":[],"action":[],"reward":[],"terminated":[],"output":[],"return":[]}
-        self.episodes = []
-        if self.policy:
-            self.baseline = DeepFunctions.ValueFunction(self.env.states_dim, self.env.actions_n)
-
-
-    def rollout(self):
-        
-        current_length = 0
-#        for k in self.memory:
-#            self.memory = []
-        
-        while current_length < self.max_length:
-            
-            episode = self.get_episode(self.max_length-current_length, policy=self.policy)    
-            current_length += len(episode['state'])  
-            self.episodes.append(episode)
-        
-        self.compute_advantage()
-        return self.episodes
-
-
-    def get_episode(self, max_step, policy=False):
-        
-        self.env.reset()
-        state, _, done = self.env.step(0)
-        episode = {"n": [], "state":[],"action":[],"reward":[],"terminated":[],"output":[]}
-        
-        for i in range(max_step):
-
-            output = self.agent.model.evaluate(state)
-            action = self.agent.act(state)
-            state, rew, done = self.env.step(action)            
-            episode["n"].append(i)
-            episode["state"].append(state)
-            episode["action"].append(action)
-            
-            episode["reward"].append(rew)        
-            episode["terminated"].append(done)
-            episode["output"].append(output)
-            
-            if done:
-                if policy:
-                    episode["reward"][-1] = -sum(episode["reward"][:-1])
-                break
-        episode = {k:np.array(v) for (k,v) in episode.items()}
-        episode["return"] = discount(episode["reward"], self.agent.discount)
-        return episode
-
-
-    def compute_advantage(self):
-        # Compute baseline, advantage
-        for episode in self.episodes:
-            b = episode["baseline"] = self.baseline.evaluate(episode)
-            b1 = np.append(b, 0 if episode["terminated"][-1] else b[-1])
-            deltas = episode["reward"] + self.discount*b1[1:] - b1[:-1] 
-            episode["advantage"] = discount(deltas, self.discount)
-        alladv = np.concatenate([episode["advantage"] for episode in self.episodes])    
-        # Standardize advantage
-        std = alladv.std()
-        mean = alladv.mean()
-        for episode in self.episodes:
-            episode["advantage"] = (episode["advantage"] - mean) / std    
-
 
     
-def discount(x, gamma):
-    """
-    computes discounted sums along 0th dimension of x.
-    inputs
-    ------
-    x: ndarray
-    gamma: float
-    outputs
-    -------
-    y: ndarray with same shape as x, satisfying
-        y[t] = x[t] + gamma*x[t+1] + gamma^2*x[t+2] + ... + gamma^k x[t+k],
-                where k = len(x) - t - 1
-    """
-    assert x.ndim >= 1
-    return scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]        
+
 
 def rollouts(env, agent, num_episodes, len_episode):
     print("Starting rollouts")    
@@ -193,3 +101,5 @@ def policy_rollouts(env, agent, value_func, num_episodes, len_episode):
     
     return {"states":states, "actions":actions, "proba": proba,
             "advantages": advantages}
+            
+

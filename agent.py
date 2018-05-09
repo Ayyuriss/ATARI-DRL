@@ -14,16 +14,20 @@ import keras.backend as K
 
 class Agent(object):
     
-    def __init__(self, model, model_type):
+    def __init__(self, model):
         
-        self.type = model_type
         
-        assert self.type in ["Q","Policy"]
-        if self.type == "Q":
-            self.model = model
-        else:
-            self.policy = model
+        
+        self.model = model
+        
         self.actions_n = model.actions_n
+        
+        self.history = {}
+        
+        self.params = self.model.variables
+
+        self.Flaten = utils.Flattener(self.params)
+        
         
     def act(self,state,train=False):
         
@@ -34,25 +38,28 @@ class Agent(object):
         raise NotImplementedError
         
     def save(self,name):
-        if self.type == "Q":
-            self.model.save(name)
-        else:
-            self.policy.save(name)
+        
+        self.model.save(name)
         
     def load(self,name):
-        if self.type == "Q":
-            self.model.load(name)
+        
+        return self.model.load(name)
+    def log(self, key,value):
+        if key not in self.history.keys():    
+            self.history[key] = [value]
         else:
-            self.policy.load(name)
+            self.history[key] = np.concatenate([self.history[key],[value]])
 
 
 class DQN(Agent):
     
     def __init__(self, states_dim, actions_n, neural_type, gamma, epsilon):
+        
         model = DeepFunctions.DeepQ(states_dim, actions_n, neural_type)
-        super(DQN,self).__init__(model, "Q")
+        super(DQN,self).__init__(model)
         self.eps = epsilon
         self.discount = gamma
+
     def act(self,state,train=True):
         if train:
             if np.random.rand()<self.eps:
@@ -61,17 +68,33 @@ class DQN(Agent):
         return utils.argmax(self.model.evaluate(state))
     
     def reinforce(self,rollout):
+
+        #t = rollout("t")
         states = rollout["state"]
         actions = rollout["action"]
         rewards = rollout["reward"]
         not_final = np.logical_not(rollout["terminated"])
         target_q = rollout["output"]
+        
+        
+        old_theta = self.Flaten.get()
+        
         target_q[np.arange(len(actions)),actions] = rewards 
         target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
-        
-
         self.model.learn(states,target_q)
-    
+                
+        new_theta = self.Flaten.get()
+        
+        self.Flaten.set(0.9*old_theta + 0.1*new_theta)
+                
+        self.log("Average reward",np.mean(rewards))
+        self.log("Min reward",np.min(rewards))
+        self.log("Average return",np.mean(rollout["return"]))
+        self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
+        self.log("Epsilon",self.eps)
+        for k,v in self.history.items():
+            print(k,": %f"%v[-1])
+        
     def set_epsilon(self,eps):
         self.eps = eps
     
@@ -88,11 +111,9 @@ class TRPO(Agent):
     def __init__(self, states_dim, actions_n, neural_type, gamma):
 
         policy = DeepFunctions.DeepPolicy(states_dim, actions_n, neural_type)
-        super(TRPO, self).__init__(policy, "Policy")
+        super(TRPO, self).__init__(policy)
         
         self.discount = gamma
-        self.params = self.model.variables
-        self.Flaten = utils.Flattener(self.params)
 
         self.setup_agent()
     
@@ -102,9 +123,9 @@ class TRPO(Agent):
         self.actions = K.placeholder(ndim=1, dtype = 'int32')
         self.advantages = K.placeholder(ndim=1)
 
-        old_pi = K.placeholder(shape=(None, self.policy.actions_n))
+        old_pi = K.placeholder(shape=(None, self.actions_n))
 
-        current_pi = self.policy.output
+        current_pi = self.model.output
 
         log_pi = utils.loglikelihood(self.actions, current_pi)
         old_log_pi = utils.loglikelihood(self.actions, old_pi)
@@ -183,7 +204,7 @@ class TRPO(Agent):
     
     def act(self,state):
         
-        proba = self.policy.evaluate(state)
+        proba = self.model.evaluate(state)
         action = utils.choice_weighted(proba)
         # print(action)
         return action

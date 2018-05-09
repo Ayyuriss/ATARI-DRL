@@ -8,22 +8,27 @@ Created on Fri Apr 20 15:31:42 2018
 from ale_environment import *
 from agent import *
 from rl_tools import *
-
+from rollers import Roller
 
 game = "breakout"
 env = ALE(game,num_steps = 4, skip_frame = 1)
 #env = ALE("seaquest.bin")
-agent = TRPO(env.states_dim,env.actions_n,'CONV',0.99)
+agent = DQN(env.states_dim,env.actions_n,'CNN',0.99,1)
 #env.step(0)
 print(env.states_dim)
-roll = Roller(env,agent,100)
-if False:
- 
-    for _ in range(100):
-        rollout = rl_tools.policy_rollouts(env, agent, 10, 700)
-        agent.reinforce(rollout)
-        agent.save("leaneard4"+game)
-        
+roll = Roller("Q", env, agent, 1000)
+#agent.load("learned4"+game)
+agent.set_epsilon(0.35)
+agent.load("learned4"+game+str(agent.eps))
+for i in range(100):
+    if not (i+1)%5:
+        agent.set_epsilon(agent.eps*0.9)
+    rollout = roll.rollout()
+    agent.reinforce(rollout)
+    agent.save("learned4"+game+str(agent.eps))
+
+
+"""   
 if False:
     import matplotlib.pyplot as plt
 
@@ -72,3 +77,4 @@ if False:
 
 
 
+"""
