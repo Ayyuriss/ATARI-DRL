@@ -9,6 +9,7 @@ Created on Fri Apr 20 17:28:08 2018
 import keras
 import numpy as np
 from keras import layers
+import keras.backend as K
 from utils.console import Progbar
 
 # =============================================================================
@@ -42,10 +43,8 @@ class BaseNetwork(keras.Sequential):
         
     def zero_initializer(self):
 
-        zero_weights = []
-        for x in self.trainable_variables:
-            zero_weights.append(np.zeros(x.shape))
-        self.set_weights(zero_weights)
+        for x in self.trainable_variables:            
+            K.set_value(x, np.zeros(x.shape))
         
     def predict(self,image):
 
@@ -134,9 +133,12 @@ class Q_CNNet(BaseNetwork):
         stride_2 = 2
         
         self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='tanh', input_shape = self.input_dim))
-        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='tanh'))
+                                               input_shape = self.input_dim))
+        self.add(layers.BatchNormalization())
+        self.add(layers.PReLU())
+        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2))
+        self.add(layers.BatchNormalization())
+        self.add(layers.PReLU())
         self.add(layers.Flatten())
         self.add(layers.Dense(256,activation='relu'))
         self.add(layers.Dense(self.output_n,activation='linear'))
@@ -155,3 +157,29 @@ class Q_FCNet(BaseNetwork):
         self.add(layers.Dense(self.output_n,activation='linear'))
         self.compile(optimizer='sgd',loss='mean_absolute_error')
         print(self.summary())
+        
+        
+        
+class Q_RCNNet(BaseNetwork):
+
+    def create_network(self):
+        n_filters_1 = 16
+        k_size_1 = 8
+        stride_1 = 4
+        
+        n_filters_2 = 32
+        k_size_2 = 4
+        stride_2 = 2
+        
+        self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
+                               activation='tanh', input_shape = self.input_dim))
+        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
+                               activation='tanh'))
+        self.add(layers.Flatten())
+        self.add(layers.Dense(256,activation='relu'))
+        self.add(layers.Dense(self.output_n,activation='linear'))
+        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        print(self.summary())
+        
+def RCNN_layer(input_fitlers, output_filters):
+    pass

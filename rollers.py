@@ -37,12 +37,15 @@ class Roller(object):
             
             self.get_episode(self.max_steps-len(self.memory['t']), policy=self.policy)
             
-        
+        for k in self.memory.keys():
+            self.memory[k] = np.concatenate([self.memory[k]],axis=0)        
+        self.memory['state'] = normalize(self.memory['state'])
+
         if self.policy:
             self.compute_advantage()
-        for k in self.memory.keys():
-            self.memory[k] = np.concatenate([self.memory[k]],axis=0)
-        self.memory['state'] = normalize(self.memory['state'])
+
+        self.scramble()
+
         return self.memory
         
 
@@ -55,18 +58,23 @@ class Roller(object):
         
         for i in range(max_step):
             self.progbar.add(1)
-            output = self.agent.model.evaluate(state)
-            action = self.agent.act(state)
-            state, rew, done = self.env.step(action)            
-            episode["t"].append(i)
+            
             episode["state"].append(state)
+
+            action = self.agent.act(state)
+
+            state, rew, done = self.env.step(action)
+
+            output = self.agent.model.evaluate(state)
+            
+            episode["t"].append(i)            
             episode["action"].append(action)
             episode["output"].append(output)
-            episode["reward"].append(rew+0.005)        
+            episode["reward"].append(rew)        
             episode["terminated"].append(done)
             
             if done:
-                episode["reward"][-1] = -np.sum(episode["reward"])
+                #episode["reward"][-1] = -5
                 break
         episode = {k:np.array(v) for (k,v) in episode.items()}
         episode["return"] = discount(episode["reward"], self.discount)
@@ -82,6 +90,13 @@ class Roller(object):
     def forget(self):
         self.memory = {s : collections.deque([],self.max_steps) for s in ["t", "state","action","reward","terminated","output","return"] }
         self.progbar.__init__(self.max_steps)
+    
+    def scramble(self):
+        n = len(self.memory['t'])
+        idx = np.random.permutation(np.arange(n))
+        for k,v in self.memory.items():
+            self.memory[k] = v[idx]
+        
     def compute_advantage(self):
         # Compute baseline, advantage
         for episode in self.episodes:
@@ -116,6 +131,7 @@ def discount(x, gamma):
 
 def normalize(v):
     norm = np.linalg.norm(v)
+    v_tmp = v-np.mean(v)
     if norm < EPS: 
-       return v-np.mean(v)
-    return (v-np.mean(v))/np.max(np.abs(v))
+       return v_tmp
+    return v_tmp/np.max(np.abs(v_tmp))

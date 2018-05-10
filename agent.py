@@ -10,7 +10,7 @@ import DeepFunctions
 import utils.agent as utils
 import utils.math as m_utils
 import keras.backend as K
-
+import collections
 
 class Agent(object):
     
@@ -22,7 +22,7 @@ class Agent(object):
         
         self.actions_n = model.actions_n
         
-        self.history = {}
+        self.history = collections.OrderedDict()
         
         self.params = self.model.variables
 
@@ -75,25 +75,29 @@ class DQN(Agent):
         actions = rollout["action"]
         rewards = rollout["reward"]
         not_final = np.logical_not(rollout["terminated"])
-        old_q = rollout["output"]
-        target_q = old_q.copy()
-        
+
+        target_q = rollout["output"]
+                
         old_theta = self.Flaten.get()
         
         target_q[np.arange(len(actions)),actions] = rewards 
         target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
-        new_q = 0.1*target_q+0.9*old_q
-        self.model.learn(states,new_q)
+        
+        self.model.learn(states,target_q)
                 
         new_theta = self.Flaten.get()
-        
-                
+        #new_theta = 0.05*new_theta+0.95*old_theta
+        new_q = self.model.evaluate(states)
+        #self.Flaten.set(new_theta)
         self.log("Average reward",np.mean(rewards))
         self.log("Min reward",np.min(rewards))
         self.log("Average return",np.mean(rollout["return"]))
+
         self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
-        self.log("Q MSE",np.linalg.norm(new_q-old_q))
+        self.log("Q MSE",np.linalg.norm(new_q-target_q))
+
         self.log("Epsilon",self.eps)
+        
         for k,v in self.history.items():
             print(k,": %f"%v[-1])
         
