@@ -138,7 +138,7 @@ class Q_CNNet(BaseNetwork):
         self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
                                activation='tanh'))
         self.add(layers.Flatten())
-        self.add(layers.Dense(64,activation='relu'))
+        self.add(layers.Dense(256,activation='relu'))
         self.add(layers.Dense(self.output_n,activation='linear'))
         self.compile(optimizer='rmsprop',loss='mean_squared_error')
         print(self.summary())

@@ -7,28 +7,28 @@ Created on Thu Jan 18 12:59:20 2018
 from ale_python_interface import ALEInterface
 import utils.env as utils
 import numpy as np
-
+import collections
 
 OPTIONS = {"IMAGES_SIZE":(84,84)}
 CROP = {"breakout":(30,10,6,6)}
 class ALE(ALEInterface):
     
-    def __init__(self,game_name, num_steps= 4, skip_frame = 1, render=True):
+    def __init__(self,game_name, num_frames= 4, skip_frames = 2, render=True):
         
         super(ALE, self).__init__()    
         
         self.crop = CROP[game_name]
-        self.num_steps = num_steps
-        self.skip_frame = skip_frame
+        self.num_frames = num_frames
+        self.skip_frames = skip_frames
         self.load_rom(game_name,render)
-        self.params()
-        self.save_current_frame()
+        self.load_params()
     
-    def params(self):
+    def load_params(self):
         
         self._actions_raw = self.getMinimalActionSet().tolist()
         self._actions_n = len(self.actions_set)
-        self._states_dim = OPTIONS["IMAGES_SIZE"]+(self.num_steps,)
+        self._states_dim = OPTIONS["IMAGES_SIZE"]+(self.num_frames,)
+        self._memory = collections.deque([],self.num_frames)
         self._start_lives = self.lives()
         self._current_state = np.zeros(self._states_dim) 
     
@@ -40,26 +40,29 @@ class ALE(ALEInterface):
         self.setBool(str.encode('display_screen'), render)
         self.loadROM(str.encode("./roms/"+utils.game_name(rom_file)))
         
-    def save_current_frame(self):
+    def capture_current_frame(self):
         up,down,left,right = self.crop
-        self._current_frame = utils.process_frame(
+        self._memory.append(utils.process_frame(
                 self.getScreenRGB()[up:-down,left:-right],
                             OPTIONS["IMAGES_SIZE"])
+                            )
     
     def get_current_state(self):
-        new_frame = utils.process_frame(self.getScreenRGB(),OPTIONS["IMAGES_SIZE"])
-        return np.concatenate([self._current_frame,new_frame],axis = -1)
+        
+        return np.concatenate(self._memory,axis = -1)
     
     def step(self,action):
- 
+        
+        while len(self._memory)<self.num_frames:
+            _ = self.act(self.actions_set[action])
+            self.capture_current_frame()
         reward = 0
         assert action in range(self.actions_n), "Action not available"
-        for i in range(self.num_steps*self.skip_frame):
-            self.save_current_frame()            
+        for i in range(self.skip_frames):
             reward = max(reward, self.act(self.actions_set[action]))
-            if not (i+1)%self.skip_frame:
-                self._current_state[:,:,(i+1)//self.skip_frame-1] = self._current_frame[:,:,0]
-        state = self._current_state
+            self.capture_current_frame()            
+        
+        state = self.get_current_state()
         
         return state, reward, self.lives() != self._start_lives
 

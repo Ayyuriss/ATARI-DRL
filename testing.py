@@ -11,21 +11,20 @@ from rl_tools import *
 from rollers import Roller
 
 game = "breakout"
-env = ALE(game,num_steps = 4, skip_frame = 1)
+env = ALE(game,num_frames = 4, skip_frames = 2)
 #env = ALE("seaquest.bin")
 agent = DQN(env.states_dim,env.actions_n,'CNN',0.99,1)
 #env.step(0)
 print(env.states_dim)
-roll = Roller("Q", env, agent, 1000)
+roll = Roller("Q", env, agent, 5000)
 #agent.load("learned4"+game)
-agent.set_epsilon(0.315)
-agent.load("learned4"+game+str(agent.eps))
-for i in range(100):
-    if not (i+1)%5:
-        agent.set_epsilon(agent.eps*0.9)
+agent.set_epsilon(1)
+#agent.load("learned4"+game+str(agent.eps))
+for i in range(100):   
     rollout = roll.rollout()
     agent.reinforce(rollout)
     agent.save("learned4"+game+str(agent.eps))
+    agent.set_epsilon(agent.eps*0.95)
 
 
 """   

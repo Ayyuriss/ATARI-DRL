@@ -118,4 +118,4 @@ def normalize(v):
     norm = np.linalg.norm(v)
     if norm < EPS: 
        return v-np.mean(v)
-    return (v-np.mean(v))/norm
+    return (v-np.mean(v))/np.max(np.abs(v))

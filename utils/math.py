@@ -121,3 +121,7 @@ def conjugate_gradient(f_Ax, b, n_iters=10, gtol=1e-10):
         
     return x
 
+def argmax(vect):
+    mx = max(vect)
+    idx = np.where(vect==mx)[0]
+    return np.random.choice(idx)

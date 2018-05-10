@@ -28,6 +28,7 @@ class Agent(object):
 
         self.Flaten = utils.Flattener(self.params)
         
+        self.checkpoints = "./checkpoints/"
         
     def act(self,state,train=False):
         
@@ -39,11 +40,11 @@ class Agent(object):
         
     def save(self,name):
         
-        self.model.save(name)
+        self.model.save(self.checkpoints+name)
         
     def load(self,name):
         
-        return self.model.load(name)
+        return self.model.load(self.checkpoints+name)
     def log(self, key,value):
         if key not in self.history.keys():    
             self.history[key] = [value]
@@ -65,7 +66,7 @@ class DQN(Agent):
             if np.random.rand()<self.eps:
                 return np.random.choice(range(self.actions_n))
          
-        return utils.argmax(self.model.evaluate(state))
+        return m_utils.argmax(self.model.evaluate(state))
     
     def reinforce(self,rollout):
 
@@ -74,23 +75,24 @@ class DQN(Agent):
         actions = rollout["action"]
         rewards = rollout["reward"]
         not_final = np.logical_not(rollout["terminated"])
-        target_q = rollout["output"]
-        
+        old_q = rollout["output"]
+        target_q = old_q.copy()
         
         old_theta = self.Flaten.get()
         
         target_q[np.arange(len(actions)),actions] = rewards 
         target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
-        self.model.learn(states,target_q)
+        new_q = 0.1*target_q+0.9*old_q
+        self.model.learn(states,new_q)
                 
         new_theta = self.Flaten.get()
         
-        self.Flaten.set(0.9*old_theta + 0.1*new_theta)
                 
         self.log("Average reward",np.mean(rewards))
         self.log("Min reward",np.min(rewards))
         self.log("Average return",np.mean(rollout["return"]))
         self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
+        self.log("Q MSE",np.linalg.norm(new_q-old_q))
         self.log("Epsilon",self.eps)
         for k,v in self.history.items():
             print(k,": %f"%v[-1])

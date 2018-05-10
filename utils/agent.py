@@ -78,7 +78,4 @@ def explained_variance(ypred, y):
     return np.nan if vary==0 else 1 - np.var(y-ypred)/vary
 
 
-def argmax(vect):
-    mx = max(vect)
-    idx = np.where(vect==mx)[0]
-    return np.random.choice(idx)
+
