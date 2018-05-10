@@ -34,10 +34,10 @@ class BaseNetwork(keras.Sequential):
         print("Fitting the NN:",X.shape, Y.shape)
         
         loss = []
+        progbar.add(batch_size)        
         for i in range(batch_size,len(X),batch_size):
             loss.append(super(BaseNetwork, self).train_on_batch(X[i-batch_size:i],Y[i-batch_size:i]))
             progbar.add(batch_size)
-            i = i + batch_size
         print("Initial loss: %f, Final loss: %f"%(loss[0],loss[-1]))
         
     def zero_initializer(self):

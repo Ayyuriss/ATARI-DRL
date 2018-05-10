@@ -18,7 +18,7 @@ agent = DQN(env.states_dim,env.actions_n,'CNN',0.99,1)
 print(env.states_dim)
 roll = Roller("Q", env, agent, 1000)
 #agent.load("learned4"+game)
-agent.set_epsilon(0.35)
+agent.set_epsilon(0.315)
 agent.load("learned4"+game+str(agent.eps))
 for i in range(100):
     if not (i+1)%5:
