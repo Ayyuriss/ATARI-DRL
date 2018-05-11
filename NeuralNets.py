@@ -133,16 +133,15 @@ class Q_CNNet(BaseNetwork):
         stride_2 = 2
         
         self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                                               input_shape = self.input_dim))
-        self.add(layers.BatchNormalization())
-        self.add(layers.PReLU())
-        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2))
-        self.add(layers.BatchNormalization())
-        self.add(layers.PReLU())
+                                               activation='softplus',input_shape = self.input_dim))
+#        self.add(layers.PReLU())
+        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2,
+                               activation='softplus'))
+#        self.add(layers.PReLU())
         self.add(layers.Flatten())
         self.add(layers.Dense(256,activation='relu'))
         self.add(layers.Dense(self.output_n,activation='linear'))
-        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        self.compile(optimizer='adam',loss='mean_squared_error')
         print(self.summary())
     
     
@@ -155,7 +154,7 @@ class Q_FCNet(BaseNetwork):
         self.add(layers.Dense(1024,activation='tanh'))
         self.add(layers.Dense(1024,activation='tanh'))
         self.add(layers.Dense(self.output_n,activation='linear'))
-        self.compile(optimizer='sgd',loss='mean_absolute_error')
+        self.compile(optimizer='adam',loss='mean_absolute_error')
         print(self.summary())
         
         

@@ -16,7 +16,7 @@ env = ALE(game,num_frames = 4, skip_frames = 4)
 agent = DQN(env.states_dim,env.actions_n,'CNN',0.99,1)
 #env.step(0)
 print(env.states_dim)
-roll = Roller("Q", env, agent, 1000)
+roll = Roller("Q", env, agent, 2000)
 
 agent.set_epsilon(1)
 #agent.load("learned4"+game+str(agent.eps))
@@ -28,7 +28,7 @@ for i in range(100):
     rollout = roll.rollout()
     agent.reinforce(rollout)
     agent.save("learned4"+game+str(agent.eps))
-    agent.set_epsilon(max(agent.eps*0.97,0.05))
+    agent.set_epsilon(max(agent.eps*0.9,0.05))
         
 
 """   

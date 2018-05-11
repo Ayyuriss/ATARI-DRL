@@ -31,7 +31,10 @@ class ALE(ALEInterface):
         self._memory = collections.deque([],self.num_frames)
         self._start_lives = self.lives()
         self._current_state = np.zeros(self._states_dim) 
-    
+        
+        while len(self._memory)<self.num_frames:
+            _ = self.act(self.actions_set[np.random.randint(self.actions_n)])
+            
     def load_rom(self,rom_file,render):
 
         self.setInt(str.encode('random_seed'), 123)
@@ -53,14 +56,12 @@ class ALE(ALEInterface):
     
     def step(self,action):
         
-        while len(self._memory)<self.num_frames:
-            _ = self.act(self.actions_set[action])
-            self.capture_current_frame()
+        
         reward = 0
         assert action in range(self.actions_n), "Action not available"
         for i in range(self.skip_frames):
             reward = max(reward, self.act(self.actions_set[action]))
-            self.capture_current_frame()            
+            
         
         state = self.get_current_state()
         
@@ -68,12 +69,16 @@ class ALE(ALEInterface):
 
     def reset(self):
         self.reset_game()
+        self.load_params()
 
     def clone(self):
         env = self.cloneSystemState()
         env.params()
         return env
-    
+    def act(self,action):
+        res = super(ALE,self).act(action)
+        self.capture_current_frame()
+        return res
     @property
     def states_dim(self):
         return self._states_dim

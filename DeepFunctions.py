@@ -73,7 +73,7 @@ class DeepQ(BaseDeep):
         else:
             self.net = NeuralNets.Q_CNNet(self.states_dim, self.actions_n)
         
-        #self.net.zero_initializer()
+        self.net.zero_initializer()
             
     def learn(self,states,target_q):
         

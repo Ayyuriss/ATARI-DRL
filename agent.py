@@ -77,18 +77,21 @@ class DQN(Agent):
         not_final = np.logical_not(rollout["terminated"])
 
         target_q = rollout["output"]
-                
+        
         old_theta = self.Flaten.get()
+        old_q = self.model.evaluate(rollout["state"]) 
         
         target_q[np.arange(len(actions)),actions] = rewards 
         target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
         
+        
+        target_q = 0.9*old_q + 0.1*target_q
+        
         self.model.learn(states,target_q)
                 
         new_theta = self.Flaten.get()
-        #new_theta = 0.05*new_theta+0.95*old_theta
-        new_q = self.model.evaluate(states)
-        #self.Flaten.set(new_theta)
+        new_q = self.model.evaluate(rollout["state"])
+        
         self.log("Average reward",np.mean(rewards))
         self.log("Min reward",np.min(rewards))
         self.log("Average return",np.mean(rollout["return"]))
