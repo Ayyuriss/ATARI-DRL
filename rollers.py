@@ -23,7 +23,7 @@ class Roller(object):
         self.max_steps = max_steps
         self.policy = (agent_type == 'Policy')
         
-#        self.memory = {"n": [], "state":[],"action":[],"reward":[],"terminated":[],"output":[],"return":[]}
+
         self.memory = collections.deque([],self.max_steps)
         if self.policy:
             self.baseline = ValueFunction(self.env.states_dim, self.env.actions_n)
@@ -31,19 +31,20 @@ class Roller(object):
 
     def rollout(self):
         
+        # clear memory        
         self.forget()
         
-        while len(self.memory['t']) < self.max_steps:
-            
+        # do the rollouts
+        while len(self.memory['t']) < self.max_steps:            
             self.get_episode(self.max_steps-len(self.memory['t']), policy=self.policy)
-            
+        # vectorize results
         for k in self.memory.keys():
             self.memory[k] = np.concatenate([self.memory[k]],axis=0)        
-        self.memory['state'] = normalize(self.memory['state'])
-
+        # calcualte advantage
         if self.policy:
             self.compute_advantage()
 
+        # scramble
         self.scramble()
 
         return self.memory
@@ -54,31 +55,34 @@ class Roller(object):
         self.env.reset()
         state, _, done = self.env.step(0)
         
-        episode = {"t": [], "state":[],"action":[],"reward":[],"terminated":[],"output":[]}
+        episode = {"t": [], "state":[],"next_state":[],"action":[],"reward":[],"terminated":[]}
         
         for i in range(max_step):
+            
             self.progbar.add(1)
-            
+
+            # save current state
             episode["state"].append(state)
-
-            action = self.agent.act(state)
-
-            state, rew, done = self.env.step(action)
-
-            output = self.agent.model.evaluate(state)
             
+            # act
+            action = self.agent.act(state)
+            state, rew, done = self.env.step(action)
+            
+            # record data
+            episode["next_state"].append(state)
             episode["t"].append(i)            
             episode["action"].append(action)
-            episode["output"].append(output)
             episode["reward"].append(rew)        
             episode["terminated"].append(done)
             
             if done:
-                episode["reward"][-1] = -sum(episode["reward"])
+                #episode["reward"][-1] = -sum(episode["reward"])
                 break
+        # vectorize results
         episode = {k:np.array(v) for (k,v) in episode.items()}
         episode["return"] = discount(episode["reward"], self.discount)
         
+        # save the episodes
         self.record(episode)
 
 
@@ -88,7 +92,7 @@ class Roller(object):
                 self.memory[k].append(v) 
                 
     def forget(self):
-        self.memory = {s : collections.deque([],self.max_steps) for s in ["t", "state","action","reward","terminated","output","return"] }
+        self.memory = {s : collections.deque([],self.max_steps) for s in ["t", "state","next_state","action","reward","terminated","return"] }
         self.progbar.__init__(self.max_steps)
     
     def scramble(self):
@@ -100,7 +104,7 @@ class Roller(object):
     def compute_advantage(self):
         # Compute baseline, advantage
         for episode in self.episodes:
-            b = episode["baseline"] = self.baseline.evaluate(episode)
+            b = episode["baseline"] = self.baseline.predict(episode)
             b1 = np.append(b, 0 if episode["terminated"][-1] else b[-1])
             deltas = episode["reward"] + self.discount*b1[1:] - b1[:-1] 
             episode["advantage"] = discount(deltas, self.discount)

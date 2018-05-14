@@ -34,12 +34,17 @@ class BaseNetwork(keras.Sequential):
         progbar = Progbar(total)
         print("Fitting the NN:",X.shape, Y.shape)
         
-        loss = []
-        progbar.add(batch_size)        
+        loss0 = []
+        loss1 = []        
+        progbar.add(batch_size)
         for i in range(batch_size,len(X),batch_size):
-            loss.append(super(BaseNetwork, self).train_on_batch(X[i-batch_size:i],Y[i-batch_size:i]))
+
+            loss0.append(super(BaseNetwork, self).train_on_batch(X[i-batch_size:i],Y[i-batch_size:i]))
+            loss1.append(np.mean((self.predict(X[i-batch_size:i])-Y[i-batch_size:i])**2))
+            
             progbar.add(batch_size)
-        print("Initial loss: %f, Final loss: %f"%(loss[0],loss[-1]))
+
+        print("Initial loss: %f, Final loss: %f"%(sum(loss0),sum(loss1)))
         
     def zero_initializer(self):
 
@@ -100,6 +105,8 @@ class Policy_CNNet(BaseNetwork):
                                activation='softplus', input_shape = self.input_dim))
         self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
                                activation='softplus'))
+
+
         self.add(layers.Flatten())
         self.add(layers.Dense(256,activation='relu'))
         self.add(layers.Dense(self.output_n,activation='softmax'))
@@ -124,24 +131,34 @@ class Policy_FCNet(BaseNetwork):
 class Q_CNNet(BaseNetwork):
 
     def create_network(self):
-        n_filters_1 = 16
-        k_size_1 = 8
-        stride_1 = 4
-        
-        n_filters_2 = 32
-        k_size_2 = 4
-        stride_2 = 2
+        n_filters_1 = 64
+        k_size_1 = 3
+        stride_1 = 2
         
         self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                                               activation='softplus',input_shape = self.input_dim))
-#        self.add(layers.PReLU())
-        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2,
-                               activation='softplus'))
-#        self.add(layers.PReLU())
+                               activation='relu', input_shape = self.input_dim))
+        self.add(layers.ZeroPadding2D())
+        self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
+                               activation='relu'))
+        self.add(layers.MaxPooling2D((2,2),strides=(2,2)))
+        
+        
+        n_filters_2 = 128
+        k_size_2 = 3
+        stride_2 = 2
+
+        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
+                               activation='relu'))
+        self.add(layers.ZeroPadding2D())        
+        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
+                               activation='relu'))
+        self.add(layers.MaxPooling2D((2,2),strides=(2,2)))
+
         self.add(layers.Flatten())
-        self.add(layers.Dense(256,activation='relu'))
+        self.add(layers.Dense(512,activation='relu'))
+        self.add(layers.Dense(128,activation='relu'))
         self.add(layers.Dense(self.output_n,activation='linear'))
-        self.compile(optimizer='adam',loss='mean_squared_error')
+        self.compile(optimizer='sgd',loss='mean_squared_error')
         print(self.summary())
     
     
@@ -162,22 +179,34 @@ class Q_FCNet(BaseNetwork):
 class Q_RCNNet(BaseNetwork):
 
     def create_network(self):
-        n_filters_1 = 16
-        k_size_1 = 8
-        stride_1 = 4
-        
-        n_filters_2 = 32
-        k_size_2 = 4
-        stride_2 = 2
+        n_filters_1 = 64
+        k_size_1 = 3
+        stride_1 = 3
         
         self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='tanh', input_shape = self.input_dim))
+                               activation='relu', input_shape = self.input_dim))
+        self.add(layers.ZeroPadding2D())
+        self.add(layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
+                               activation='relu'))
+        self.add(layers.MaxPooling2d((2,2),strides=(2,2)))
+        
+        
+        n_filters_2 = 128
+        k_size_2 = 4
+        stride_2 = 2
+
         self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='tanh'))
+                               activation='relu'))
+        self.add(layers.ZeroPadding2D())        
+        self.add(layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
+                               activation='relu'))
+        self.add(layers.MaxPooling2d((2,2),strides=(2,2)))
+
         self.add(layers.Flatten())
-        self.add(layers.Dense(256,activation='relu'))
+        self.add(layers.Dense(512,activation='relu'))
+        self.add(layers.Dense(128,activation='relu'))
         self.add(layers.Dense(self.output_n,activation='linear'))
-        self.compile(optimizer='rmsprop',loss='mean_squared_error')
+        self.compile(optimizer='sgd',loss='mean_squared_error')
         print(self.summary())
         
 def RCNN_layer(input_fitlers, output_filters):

@@ -24,7 +24,7 @@ class BaseDeep(object):
     def setup_model(self):
         raise (NotImplementedError, self.network_type)
         
-    def evaluate(self,state):
+    def predict(self,state):
         
         return self.net.predict(state)
     
@@ -33,6 +33,10 @@ class BaseDeep(object):
         
     def load(self,name):
         self.net.load(name)
+    
+    def learn(self,states,target_q):        
+        self.net.fit(states,target_q)
+
 
     @property
     def variables(self):
@@ -73,11 +77,9 @@ class DeepQ(BaseDeep):
         else:
             self.net = NeuralNets.Q_CNNet(self.states_dim, self.actions_n)
         
-        self.net.zero_initializer()
+        #self.net.zero_initializer()
             
-    def learn(self,states,target_q):
-        
-        self.net.fit(states,target_q)
+
             
 # ================================================================
 # Value Function for baseline

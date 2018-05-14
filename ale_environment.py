@@ -33,8 +33,7 @@ class ALE(ALEInterface):
         self._current_state = np.zeros(self._states_dim) 
         
         while len(self._memory)<self.num_frames:
-            _ = self.act(self.actions_set[np.random.randint(self.actions_n)])
-            
+            self.capture_current_frame()
     def load_rom(self,rom_file,render):
 
         self.setInt(str.encode('random_seed'), 123)
@@ -59,7 +58,8 @@ class ALE(ALEInterface):
         
         reward = 0
         assert action in range(self.actions_n), "Action not available"
-        for i in range(self.skip_frames):
+        
+        for i in range(self.num_frames-1):
             reward = max(reward, self.act(self.actions_set[action]))
             
         
@@ -75,10 +75,19 @@ class ALE(ALEInterface):
         env = self.cloneSystemState()
         env.params()
         return env
+
+
     def act(self,action):
-        res = super(ALE,self).act(action)
+
+        res = 0
+        for _ in range(self.skip_frames):
+            res = max(res,super(ALE,self).act(action))
+
         self.capture_current_frame()
+
         return res
+
+
     @property
     def states_dim(self):
         return self._states_dim

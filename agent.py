@@ -50,7 +50,10 @@ class Agent(object):
             self.history[key] = [value]
         else:
             self.history[key] = np.concatenate([self.history[key],[value]])
-
+    def print_log(self):
+        max_l = max(list(map(len,self.history.keys())))
+        for k,v in self.history.items():
+            print(k+(max_l-len(k))*" ",": %f"%v[-1])
 
 class DQN(Agent):
     
@@ -66,43 +69,41 @@ class DQN(Agent):
             if np.random.rand()<self.eps:
                 return np.random.choice(range(self.actions_n))
          
-        return m_utils.argmax(self.model.evaluate(state))
+        return m_utils.argmax(self.model.predict(state))
     
     def reinforce(self,rollout):
 
         #t = rollout("t")
+
         states = rollout["state"]
         actions = rollout["action"]
         rewards = rollout["reward"]
         not_final = np.logical_not(rollout["terminated"])
-
-        target_q = rollout["output"]
         
         old_theta = self.Flaten.get()
-        old_q = self.model.evaluate(rollout["state"]) 
         
-        target_q[np.arange(len(actions)),actions] = rewards 
-        target_q[np.arange(len(actions)),actions][not_final] += self.discount*np.max(target_q,axis=1)[not_final]
+        old_q = self.model.predict(rollout["state"])
         
-        
-        target_q = 0.9*old_q + 0.1*target_q
-        
-        self.model.learn(states,target_q)
-                
+        for _ in range(1):
+            target_q = self.model.predict(rollout["state"])  
+            target_q[np.arange(len(actions)),actions] = rewards 
+            target_q[np.arange(len(actions)),actions][not_final] +=(
+                self.discount*np.max(self.model.predict(rollout["next_state"]),
+                                                        axis=1)[not_final])
+            self.model.learn(states,target_q)
+            
         new_theta = self.Flaten.get()
-        new_q = self.model.evaluate(rollout["state"])
-        
+        new_q = self.model.predict(rollout["state"])
+        self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
+        self.log("Q MSE",np.linalg.norm(new_q-old_q))
+
         self.log("Average reward",np.mean(rewards))
         self.log("Min reward",np.min(rewards))
         self.log("Average return",np.mean(rollout["return"]))
 
-        self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
-        self.log("Q MSE",np.linalg.norm(new_q-target_q))
 
         self.log("Epsilon",self.eps)
-        
-        for k,v in self.history.items():
-            print(k,": %f"%v[-1])
+        self.print_log()
         
     def set_epsilon(self,eps):
         self.eps = eps
@@ -213,7 +214,7 @@ class TRPO(Agent):
     
     def act(self,state):
         
-        proba = self.model.evaluate(state)
+        proba = self.model.predict(state)
         action = utils.choice_weighted(proba)
         # print(action)
         return action
