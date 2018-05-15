@@ -10,10 +10,12 @@ from agent import *
 from rl_tools import *
 from rollers import Roller
 
-game = "breakout"
-env = ALE(game,num_frames = 2, skip_frames = 4)
+#game = "breakout"
+game = "grid"
+#env = ALE(game,num_frames = 2, skip_frames = 4)
 #env = ALE("seaquest.bin")
-agent = DQN(env.states_dim,env.actions_n,'CNN',0.99,1)
+env = GRID()
+agent = DQN(env.states_dim,env.actions_n,'FC',0.99,1)
 #env.step(0)
 print(env.states_dim)
 roll = Roller("Q", env, agent, 5000)

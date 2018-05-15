@@ -11,7 +11,7 @@ from scipy.misc import imshow
 import numpy as np
 
 def process_frame(img,size):
-    return np.expand_dims(transform.resize(grayscale(img),size,mode='reflect'),axis=2)
+    return np.floor(1000*np.clip(np.expand_dims(transform.resize(grayscale(img),size,mode='reflect'),axis=2),0,1))/1000
 
 def grayscale(frame):
     return (0.2989*frame[:,:, 0] + 0.5870*frame[:,:, 1]

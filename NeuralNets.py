@@ -165,12 +165,12 @@ class Q_CNNet(BaseNetwork):
 class Q_FCNet(BaseNetwork):
 
     def create_network(self):
-        
-        self.add(layers.MaxPooling2D(input_shape = self.input_dim))
-        self.add(layers.Flatten())
-        self.add(layers.Dense(1024,activation='tanh'))
-        self.add(layers.Dense(1024,activation='tanh'))
+                
+        self.add(layers.Flatten(input_shape=self.input_dim))
+        self.add(layers.Dense(128,activation='tanh'))
+        self.add(layers.Dense(64,activation='tanh'))
         self.add(layers.Dense(self.output_n,activation='linear'))
+        
         self.compile(optimizer='adam',loss='mean_absolute_error')
         print(self.summary())
         
