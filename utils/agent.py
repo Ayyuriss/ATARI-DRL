@@ -77,5 +77,7 @@ def explained_variance(ypred, y):
     vary = np.var(y)
     return np.nan if vary==0 else 1 - np.var(y-ypred)/vary
 
-
-
+import keras
+def evaluate_filters(net, layer_n, inputs):
+    model = keras.models.Model(inputs=[net.input], outputs=net.layers[layer_n].output)
+    return model.predict(inputs.reshape((1,)+inputs.shape))

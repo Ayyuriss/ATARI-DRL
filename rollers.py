@@ -76,7 +76,7 @@ class Roller(object):
             episode["terminated"].append(done)
             
             if done:
-                #episode["reward"][-1] = -sum(episode["reward"])
+                #episode["reward"][-1] = -1
                 break
         # vectorize results
         episode = {k:np.array(v) for (k,v) in episode.items()}

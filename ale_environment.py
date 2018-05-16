@@ -9,8 +9,8 @@ import utils.env as utils
 import numpy as np
 import collections
 
-OPTIONS = {"IMAGES_SIZE":(84,84)}
-CROP = {"breakout":(30,10,6,6)}
+OPTIONS = {"IMAGES_SIZE":(80,80)}
+CROP = {"breakout":(32,10,8,8)}
 
 class ALE(ALEInterface):
     
@@ -105,15 +105,15 @@ import skimage
 
 class GRID(object):
     
-    def __init__(self, grid_size=16, max_time=500, temperature=0.1):
+    def __init__(self, grid_size=32, max_time=500):
         
         grid_size = grid_size+4
-        self.grid_size = grid_size
-        self.max_time = max_time
-        self.temperature = temperature
-        
 
-        
+        self.grid_size = grid_size
+
+        self.max_time = max_time
+
+
         #board on which one plays
         self.board = np.zeros((grid_size,grid_size))
         self.position = np.zeros((grid_size,grid_size))
@@ -122,29 +122,36 @@ class GRID(object):
         self.x = 0
         self.y = 1
 
+
         # self time
         self.t = 0
 
         self.scale = self.grid_size
 
-        self.to_draw = np.zeros((max_time+2, self.scale, self.scale,1))
+        self.to_draw = np.zeros((max_time+2, self.scale, self.scale,3))
 
         self.actions_n = 4
-        self.states_dim = (self.scale,self.scale,1)
+        self.states_dim = (self.scale,self.scale,3)
+        
+        self.reset()
         
     def draw(self,e):
         
         skvideo.io.vwrite(str(e) + '.mp4', self.to_draw)
-
+    
+    def draw_frame(self):
+        
+        skimage.io.imshow(self.to_draw[self.t])
+        
     def get_frame(self,t):
         
-        b = np.zeros((self.grid_size,self.grid_size,3))+128
-        #Turns the food cells to red
+        b = np.zeros((self.grid_size,self.grid_size,3))+64
+
+        #Turns the mouse cell to red
         b[self.board>0,0] = 256
-        # Turns the virus cells to blue
-        b[self.board < 0, 2] = 256
-        #Turns the agent position to black
-        b[self.x,self.y,:]=256
+        
+        #Turns the cat position to white
+        b[self.x,self.y,:] = 256
         
         #Coloring the borders to black
         b[-2:,:,:]=0
@@ -155,10 +162,11 @@ class GRID(object):
         b =  skimage.transform.resize(b, (self.scale, self.scale,3),mode='reflect')
 
         #Storing the frame
-        self.to_draw[t] = utils.process_frame(b,(self.scale, self.scale))
+        self.to_draw[t] = b/256#utils.process_frame(b,(self.scale, self.scale))
 
 
     def step(self, action):
+        
         """This function returns the new state, reward and decides if the
         game ends."""
 
@@ -171,6 +179,7 @@ class GRID(object):
         self.position[:,0:2] = -1
         self.position[-2:, :] = -1
         self.position[-2:, :] = -1
+
         # set current position
         self.position[self.x, self.y] = 1
         
@@ -200,45 +209,39 @@ class GRID(object):
         self.t = self.t + 1
         reward = self.board[self.x, self.y]
         self.board[self.x, self.y] = 0
+        if reward ==1:
+            self.add_mouse()
         game_over = self.t > self.max_time
-        #state = np.concatenate((self.board.reshape(self.grid_size, self.grid_size,1),
-        #                self.position.reshape(self.grid_size, self.grid_size,1)),axis=2)
-        #state = self.board.reshape(self.grid_size, self.grid_size,1)
-        #state = state[self.x-2:self.x+3,self.y-2:self.y+3,:]
+
         self.get_frame(self.t)
         return self.to_draw[self.t], reward, game_over
 
     def reset(self):
+
         """This function resets the game and returns the initial state"""
 
-        self.x = np.random.randint(3, self.grid_size-3, size=1)[0]
-        self.y = np.random.randint(3, self.grid_size-3, size=1)[0]
+        self.x = np.random.randint(3, self.grid_size-3)
+        self.y = np.random.randint(3, self.grid_size-3)
 
 
-        bonus = 0.5*np.random.binomial(1,self.temperature,size=self.grid_size**2)
-        bonus = bonus.reshape(self.grid_size,self.grid_size)
+        self.add_mouse()
 
-        malus = -1.0*np.random.binomial(1,self.temperature,size=self.grid_size**2)
-        malus = malus.reshape(self.grid_size, self.grid_size)
-
-        self.to_draw = np.zeros((self.max_time+2, self.scale, self.scale,1))
-
-
-        malus[bonus>0]=0
-
-        self.board = bonus + malus
+        self.to_draw = np.zeros((self.max_time+2, self.scale, self.scale,3))
 
         self.position = np.zeros((self.grid_size, self.grid_size))
         self.position[0:2,:]= -1
         self.position[:,0:2] = -1
         self.position[-2:, :] = -1
         self.position[-2:, :] = -1
-        self.board[self.x,self.y] = 0
         self.t = 0
 
-        #state = np.concatenate((self.board.reshape(self.grid_size, self.grid_size,1),
-        #                self.position.reshape(self.grid_size, self.grid_size,1)),axis=2)
-        #state = self.board.reshape(self.grid_size, self.grid_size,1)
-#       state = state[self.x - 2:self.x + 3, self.y - 2:self.y + 3, :]
         self.get_frame(0)
-        return self.to_draw[self.t]
+        
+    def add_mouse(self):
+        
+        self.board*=0
+        mouse_x,mouse_y = self.x,self.y
+        while (mouse_x,mouse_y)==(self.x,self.y): 
+            mouse_x = np.random.randint(3, self.grid_size-2)
+            mouse_y = np.random.randint(3, self.grid_size-2)
+        self.board[mouse_x, mouse_y]=1

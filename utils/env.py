@@ -7,6 +7,7 @@ Created on Tue May  1 14:28:01 2018
 """
 
 from skimage import transform
+from skimage import io
 from scipy.misc import imshow
 import numpy as np
 
@@ -24,7 +25,7 @@ def get_luminescence(frame):
 	return (0.2126*R + 0.7152*G + 0.0722*B).astype(int)
 
 def show(frame):
-    imshow(frame)
+    io.imshow(frame)
     
 def game_name(name):
     idx = name.find(".")
@@ -37,7 +38,7 @@ def game_name(name):
             raise(NameError,name)
             return ""
         
-def display_filters(filter_mat, n_col):
+def stack_show(filter_mat, n_col):
     
     shape = filter_mat.shape
     cols = n_col
@@ -48,7 +49,5 @@ def display_filters(filter_mat, n_col):
     for i in range(rows):
         for j in range(cols):
             screen[shape[0]*i:shape[0]*(i+1),shape[1]*j:shape[1]*(j+1)] = filter_mat[:,:,i*cols+j]
-    imshow(screen)
-    return screen
-
-    
+    show(screen)
+    #return screen

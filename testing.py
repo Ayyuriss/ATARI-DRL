@@ -11,18 +11,19 @@ from rl_tools import *
 from rollers import Roller
 
 #game = "breakout"
-game = "grid"
-#env = ALE(game,num_frames = 2, skip_frames = 4)
+
+#env = ALE(game,num_frames = 2, skip_frames = 4, render = False)
 #env = ALE("seaquest.bin")
-env = GRID()
-agent = DQN(env.states_dim,env.actions_n,'FC',0.99,1)
-#env.step(0)
+
+game = "grid"
+env = GRID(grid_size=28)
+agent = DQN(env.states_dim,env.actions_n,'CNN',0.98,1)
 print(env.states_dim)
 roll = Roller("Q", env, agent, 5000)
 
 agent.set_epsilon(1)
 #agent.load("learned4"+game+str(agent.eps))
-agent.model.net.zero_initializer()
+#agent.model.net.zero_initializer()
 import time
 start = time.time()
 for i in range(100):   
@@ -31,7 +32,7 @@ for i in range(100):
     rollout = roll.rollout()
     agent.reinforce(rollout)
     agent.save("learned4"+game+str(agent.eps))
-    agent.set_epsilon(max(agent.eps*0.95,0.05))
+    agent.set_epsilon(max(agent.eps*0.97,0.05))
         
 
 """   

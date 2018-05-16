@@ -75,7 +75,6 @@ class DQN(Agent):
 
         #t = rollout("t")
 
-        states = rollout["state"]
         actions = rollout["action"]
         rewards = rollout["reward"]
         not_final = np.logical_not(rollout["terminated"])
@@ -84,13 +83,13 @@ class DQN(Agent):
         
         old_q = self.model.predict(rollout["state"])
         
-        for _ in range(1):
+        for _ in range(5):
             target_q = self.model.predict(rollout["state"])  
             target_q[np.arange(len(actions)),actions] = rewards 
             target_q[np.arange(len(actions)),actions][not_final] +=(
                 self.discount*np.max(self.model.predict(rollout["next_state"]),
                                                         axis=1)[not_final])
-            self.model.learn(states,target_q)
+            self.model.learn(rollout["state"],target_q)
             
         new_theta = self.Flaten.get()
         new_q = self.model.predict(rollout["state"])
