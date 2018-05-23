@@ -34,8 +34,9 @@ class BaseDeep(object):
     def load(self,name):
         self.net.load(name)
     
-    def learn(self,states,target_q):        
-        self.net.fit(states,target_q)
+    def learn(self,states,target_q,batch_size):
+        
+        self.net.fit(states,target_q,batch_size)
 
 
     @property

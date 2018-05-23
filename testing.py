@@ -5,36 +5,45 @@ Created on Fri Apr 20 15:31:42 2018
 
 @author: thinkpad
 """
-from ale_environment import *
-from agent import *
-from rl_tools import *
+import tensorflow as tf
+tf.extract_image_patches
+import ale_environment as environment
+import agent as agents
+#from rl_tools import *
 from rollers import Roller
-
+import gc
+import time
+gc.enable()
+gc.collect()
 #game = "breakout"
 
 #env = ALE(game,num_frames = 2, skip_frames = 4, render = False)
 #env = ALE("seaquest.bin")
 
-game = "grid"
-env = GRID(grid_size=28)
-agent = DQN(env.states_dim,env.actions_n,'CNN',0.98,1)
-print(env.states_dim)
-roll = Roller("Q", env, agent, 5000)
 
-agent.set_epsilon(1)
-#agent.load("learned4"+game+str(agent.eps))
+game = "grid"
+env = environment.GRID(grid_size=16)
+agent = agents.DQN(env.states_dim,env.actions_n,'FC',0.99,1)
+print(env.states_dim)
+roll = Roller("Q", env, agent, 700000)
+#agent.model.net.reduce_weights(10)
+#agent.set_epsilon(1)
+#agent.load("learned"+game+str(agent.eps))
+time.sleep(5)
 #agent.model.net.zero_initializer()
-import time
+
 start = time.time()
-for i in range(100):   
-    print('='*80+'\n'+'='*80)
+for i in range(500):
+    agent.set_epsilon(max(1-i/500,0.1))
+    print('='*80+"\n")
     print('%f'%(time.time()-start))
     rollout = roll.rollout()
-    agent.reinforce(rollout)
-    agent.save("learned4"+game+str(agent.eps))
-    agent.set_epsilon(max(agent.eps*0.97,0.05))
-        
-
+    agent.reinforce(rollout,500,8)
+    del(rollout)
+    roll.forget()
+    agent.save("learned"+game+str(agent.eps))
+    roll.play(i)
+    
 """   
 if False:
     import matplotlib.pyplot as plt
@@ -76,12 +85,63 @@ if False:
     Z= model.predict(X)
     
     
-    
-    
     plt.plot(X, )
-        
+
+
+state = rollout['state']
+n_state = rollout['next_state']
+rew = rollout['reward']
+pos_r = np.where(rew>0)[0]
+
+state_pos = state[pos_r]
+n_state_pos = n_state[pos_r]
+
+success_cases = []
+for i in pos_r:
+    success_cases.append(state[i])
+    success_cases.append(n_state[i])
+success_cases = np.array(success_cases)
+
+skvideo.io.vwrite("./plays/test" + '.mp4', (success_cases*255).astype('uint8'),inputdict={'-r':'5'})
+
+self = agent
+
+i = 1200
+a = actions[i]
+old = old_q[i]
+r = rew[i]
+s = state[i]
+max_n_Q = self.discount*np.max(n_q,axis=1)
+
+for i in range(len(actions)):
+    target_q[i,actions[i]] = rew[i]
+    if not_final[i]:
+        target_q[i,actions[i]] += max_n_Q[i]
+
+new = target_q[i]
+new,old
+
+a,r,old
+skimage.io.imshow(s)
 
 
 
+d = np.std(old_q,axis=0)
+e = np.max(old_q,axis=0)
+f = np.min(old_q,axis=0)
+g = e-f
+
+old_qq = agent.model.net.predict(state)
+np.linalg.norm(old_q-old_qq)
 
 """
+
+import h5py
+filename = "./checkpoints/"+"learned"+game+str(agent.eps)
+f = h5py.File(filename, 'r')
+
+print("Keys: %s" % f.keys())
+a_group_key = list(f.keys())[0]
+
+# Get the data
+data = list(f[a_group_key])

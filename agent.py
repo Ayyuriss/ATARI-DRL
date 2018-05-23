@@ -39,11 +39,11 @@ class Agent(object):
         raise NotImplementedError
         
     def save(self,name):
-        
+        print("Saving %s"%name)
         self.model.save(self.checkpoints+name)
         
     def load(self,name):
-        
+        print("Loading %s"%name)
         return self.model.load(self.checkpoints+name)
     def log(self, key,value):
         if key not in self.history.keys():    
@@ -64,14 +64,14 @@ class DQN(Agent):
         self.eps = epsilon
         self.discount = gamma
 
-    def act(self,state,train=True):
-        if train:
-            if np.random.rand()<self.eps:
-                return np.random.choice(range(self.actions_n))
+    def act(self,state):
+        
+        if np.random.rand()<self.eps:
+            return np.random.choice(range(self.actions_n))
          
-        return m_utils.argmax(self.model.predict(state))
+        return np.argmax(self.model.predict(state))
     
-    def reinforce(self,rollout):
+    def reinforce(self,rollout,batch_size=50,epochs=1):
 
         #t = rollout("t")
 
@@ -80,16 +80,19 @@ class DQN(Agent):
         not_final = np.logical_not(rollout["terminated"])
         
         old_theta = self.Flaten.get()
-        
         old_q = self.model.predict(rollout["state"])
         
-        for _ in range(5):
-            target_q = self.model.predict(rollout["state"])  
-            target_q[np.arange(len(actions)),actions] = rewards 
-            target_q[np.arange(len(actions)),actions][not_final] +=(
-                self.discount*np.max(self.model.predict(rollout["next_state"]),
-                                                        axis=1)[not_final])
-            self.model.learn(rollout["state"],target_q)
+        target_q = old_q.copy() #self.model.predict(rollout["state"])
+        max_Q_prim = np.max(rollout["target_q"],axis=1)
+    
+        for i in range(len(actions)):
+            target_q[i,actions[i]] = rewards[i]
+            if not_final[i]:
+                target_q[i,actions[i]] += self.discount*max_Q_prim[i]
+                    
+        for _ in range(epochs):
+            
+            self.model.learn(rollout["state"],target_q,batch_size)
             
         new_theta = self.Flaten.get()
         new_q = self.model.predict(rollout["state"])
