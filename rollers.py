@@ -4,10 +4,7 @@ Created on Tue May  8 08:51:00 2018
 
 @author: gamer
 """
-
-from DeepFunctions import ValueFunction
-
-import collections
+import dummy_obj
 import numpy as np
 import scipy.signal
 from utils.console import Progbar
@@ -15,47 +12,44 @@ EPS = np.finfo(np.float32).tiny
 
 class Roller(object):
     
-    def __init__(self,agent_type, env, agent, max_steps):
+    def __init__(self, env, agent, memory_max):
         
         self.env = env
         self.agent = agent
-        self.discount = agent.discount
-        self.max_steps = max_steps
-        self.policy = (agent_type == 'Policy')
-        
-        self.memory = collections.deque([],self.max_steps)
-        if self.policy:
-            self.baseline = ValueFunction(self.env.states_dim, self.env.actions_n)
-        self.progbar = Progbar(self.max_steps)
 
-    def rollout(self):
+        self.memory_max = memory_max
         
-        # clear memory        
-        self.forget()
+        self.progbar = Progbar(self.memory_max)
         
+        self.memory = dummy_obj.Memory(self.memory_max,["t","state","action","next_state","reward","return","terminated"])
+
+    def rollout(self,num_steps):
+        
+        roll={}        
         # do the rollouts
-        while len(self.memory['t']) < self.max_steps:            
-            self.get_episode(self.max_steps-len(self.memory['t']), policy=self.policy)
-        # vectorize results
-        for k in self.memory.keys():
-            self.memory[k] = np.concatenate([self.memory[k]],axis=0)        
-        # calcualte advantage
-        if self.policy:
-            self.compute_advantage()
+        self.get_episodes(num_steps)
+        
         # scramble
-        self.scramble()
+        
+        # vectorize results
+        
+        roll = self.memory.random_sample(num_steps)        
 
-        return self.memory
+        # calcualte advantage
+        #if self.policy:
+        #    self.compute_advantage()
+        return roll
         
 
-    def get_episode(self, max_step, policy=False):
+    def get_episodes(self, length):
         
         state = self.env.reset()
         
-        episode = {"t": [], "state":[],"action":[],"target_q":[],"reward":[],"terminated":[]}
+        self.agent.policy.reset()
         
-        next_states = []
-        for i in range(max_step):
+        episode = self.memory.empty_episode()
+                
+        for i in range(length):
             
             self.progbar.add(1)
 
@@ -65,7 +59,7 @@ class Roller(object):
             # act
             action = self.agent.act(state)   
             state, rew, done = self.env.step(action)
-            next_states.append(state)
+            episode["next_state"].append(state)
 
             
             episode["t"].append(i)            
@@ -74,39 +68,17 @@ class Roller(object):
             episode["terminated"].append(done)
             
             if done:
-                #episode["reward"][-1] = -1
-                break
+                state = self.env.reset()
             
-        # vectorize results
-        next_states = np.array(next_states)
-        episode["target_q"] = self.agent.model.predict(next_states)
-        episode = {k:np.array(v) for (k,v) in episode.items()}
-        episode["return"] = discount(episode["reward"], self.discount)
-        del(next_states)
+            self.agent.policy.decrement(1/length)
+        # vectorize results)
+        episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
         # record the episodes
-        self.record(episode)
-
-
-
-
-    def record(self,episode):
-        for k in episode.keys():
-            for v in episode[k]:
-                self.memory[k].append(v) 
-                
-    def forget(self):
+        self.memory.record(episode)
         
-        self.memory = {s : collections.deque([],self.max_steps)
-            for s in ["t", "state","action","target_q","reward","terminated","return"] }
-        
-        self.progbar.__init__(self.max_steps)
-    
-    def scramble(self):
-        n = len(self.memory['t'])
-        idx = np.random.permutation(np.arange(n))
-        for k in self.memory.keys():
-            self.memory[k] = self.memory[k][idx]
-        
+        del(episode)
+
+
     def compute_advantage(self):
         # Compute baseline, advantage
         for episode in self.episodes:
@@ -120,7 +92,6 @@ class Roller(object):
         mean = alladv.mean()
         for episode in self.episodes:
             episode["advantage"] = (episode["advantage"] - mean) / std
-
 
     def play(self,name='play'):
         eps = self.agent.eps
@@ -138,18 +109,6 @@ class Roller(object):
         self.agent.set_epsilon(eps)
 
 def discount(x, gamma):
-    """
-    computes discounted sums along 0th dimension of x.
-    inputs
-    ------
-    x: ndarray
-    gamma: float
-    outputs
-    -------
-    y: ndarray with same shape as x, satisfying
-        y[t] = x[t] + gamma*x[t+1] + gamma^2*x[t+2] + ... + gamma^k x[t+k],
-                where k = len(x) - t - 1
-    """
     assert x.ndim >= 1
     return scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]        
 
@@ -160,3 +119,4 @@ def normalize(v):
     if norm < EPS: 
        return v_tmp
     return v_tmp/np.max(np.abs(v_tmp))
+
