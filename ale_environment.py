@@ -105,13 +105,14 @@ import skimage
 
 class GRID(object):
     
-    def __init__(self, grid_size=16, max_time=600):
+    def __init__(self, grid_size=16, max_time=500, square_size = 2):
         
 
         self.grid_size = grid_size
 
         self.max_time = max_time
-
+        
+        self.square = square_size
 
         #board in which the cat moves
 
@@ -148,7 +149,7 @@ class GRID(object):
         
         self.to_draw[int(self.t)][self.board>0,0] = 1      
 
-        self.to_draw[int(self.t)][self.x,self.y,0] = -1
+        self.to_draw[int(self.t)][self.x:min(self.grid_size,self.x+self.square),self.y:min(self.grid_size,self.y+self.square),0] = -1
         
     def step(self, action):
         
@@ -163,26 +164,26 @@ class GRID(object):
         
         if action == 0:
             if self.x == self.grid_size-1:
-                #self.x = self.x-1
+                self.x = self.x-1
                 reward += -1 
             else:
                 self.x = self.x + 1
         elif action == 1:
             if self.x == 0:
-                #self.x = self.x+1
+                self.x = self.x+1
                 reward += -1 
             else:
                 self.x = self.x-1
         elif action == 2:
             if self.y == self.grid_size - 1:
                 reward += -1 
-                #self.y = self.y - 1
+                self.y = self.y - 1
             else:
                 self.y = self.y + 1
         elif action == 3:
             if self.y == 0:
                 reward += -1 
-                #self.y = self.y + 1
+                self.y = self.y + 1
             else:
                 self.y = self.y - 1
         else:
@@ -232,7 +233,7 @@ class GRID(object):
             mouse_x = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
             mouse_y = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
             start = not start
-        self.board[mouse_x, mouse_y] = 1
+        self.board[mouse_x:min(self.grid_size,mouse_x+self.square), mouse_y:min(self.grid_size,mouse_y+self.square)] = 1
         
     def current_state(self):
         

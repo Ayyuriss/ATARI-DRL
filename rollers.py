@@ -24,32 +24,19 @@ class Roller(object):
         self.memory = dummy_obj.Memory(self.memory_max,["t","state","action","next_state","reward","return","terminated"])
 
     def rollout(self,num_steps):
-        
-        roll={}        
-        # do the rollouts
-        self.get_episodes(num_steps)
-        
-        # scramble
-        
-        # vectorize results
-        
-        roll = self.memory.random_sample(num_steps)        
 
-        # calcualte advantage
-        #if self.policy:
-        #    self.compute_advantage()
+        self.get_episodes(num_steps)                
+        roll = self.memory.random_sample(num_steps)        
         return roll
         
-
     def get_episodes(self, length):
         
-        
-        state = self.env.reset()
-        
+        state = self.env.reset()        
         self.agent.set_epsilon(1)
         
         episode = self.memory.empty_episode()
         self.progbar.__init__(length)
+
         for i in range(length):
             
             self.progbar.add(1)
@@ -60,9 +47,8 @@ class Roller(object):
             # act
             action = self.agent.act(state)   
             state, rew, done = self.env.step(action)
-            episode["next_state"].append(state)
 
-            
+            episode["next_state"].append(state)            
             episode["t"].append(i)            
             episode["action"].append(action)
             episode["reward"].append(rew)        
@@ -72,8 +58,9 @@ class Roller(object):
                 state = self.env.reset()
             
             self.agent.decrement_eps(1/length)
-        # vectorize results)
+
         episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
+
         # record the episodes
         self.memory.record(episode)
         

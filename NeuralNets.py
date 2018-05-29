@@ -177,14 +177,15 @@ class Q_FCNet(BaseNetwork):
         
         
         inputs = layers.Input(shape=self.input_dim)
-        block1 = inputs# conv_block(inputs)
+        block0 = layers.BatchNormalization()(inputs)
+        block1 = conv_block(block0)
         x = layers.Flatten()(block1)
-        x = layers.Dense(512,activation="softplus")(x)
+        x = layers.Dense(256,activation="softplus")(x)
         #x = layers.Dense(25,activation="relu")(x)
         x = layers.Dense(256,activation="relu")(x)
         #x = layers.Dense(128,activation="relu")(x)
-        x = layers.Dense(256,activation="relu")(x)
-        x = layers.Dense(64,activation="relu")(x)
+        #x = layers.Dense(256,activation="relu")(x)
+        x = layers.Dense(16,activation="relu")(x)
         #block1 = conv_block(inputs)
         #x = layers.Flatten()(block1)
         #x = layers.Dense(128,activation='softplus')(x)
@@ -193,7 +194,7 @@ class Q_FCNet(BaseNetwork):
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         
         self.model = keras.models.Model(inputs,outputs)
-        self.model.compile(optimizer='sgd',loss='mean_squared_error')
+        self.model.compile(optimizer='adam',loss='mean_squared_error')
         print(self.model.summary())
         
         
@@ -236,12 +237,12 @@ def RCNN_layer(input_fitlers, output_filters):
 
 
 def conv_block(inputs):
-    n_filters_1 = 3
-    k_size_1 = 1
-    stride_1 = 1
+    n_filters_1 = 16
+    k_size_1 = 3
+    stride_1 = 2
         
-    n_filters_2 = 16
-    k_size_2 = 2
+    n_filters_2 = 32
+    k_size_2 = 4
     stride_2 = 2
     
     #a = layers.ZeroPadding2D()(inputs)

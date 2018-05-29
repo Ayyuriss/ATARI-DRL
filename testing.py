@@ -19,9 +19,9 @@ gc.collect()
 
 
 game = "grid"
-env = environment.GRID(grid_size=10)
+env = environment.GRID(grid_size=24)
 agent = DQN(env.states_dim,env.actions_n,'FC',0.99,1)
-#agent.load("learnedgrid0.05")
+agent.load("learnedgrid0.1")
 print(env.states_dim)
 roller = Roller(env, agent, 200000)
 
@@ -33,7 +33,7 @@ for i in range(100):
     print('='*80+"\n")
     print('%f'%(time.time()-start))
     rollout = roller.rollout(100000)
-    for _ in range(5):
+    for _ in range(3):
         agent.reinforce(rollout)
     del(rollout)
     agent.save("learned"+game+str(agent.eps))
