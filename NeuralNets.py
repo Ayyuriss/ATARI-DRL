@@ -74,7 +74,14 @@ class BaseNetwork(object):
     @property
     def trainable_variables(self):
         return self.model.trainable_weights
-
+    
+    @property
+    def input(self):
+        return self.model.input
+    
+    @property
+    def output(self):
+        return self.model.output
 # =============================================================================
 #  Fully Connected structures
 # =============================================================================
@@ -127,7 +134,7 @@ class Policy_FCNet(BaseNetwork):
         self.model.add(layers.Dense(1024,activation='tanh'))
         self.model.add(layers.Dense(1024,activation='tanh'))
         self.model.add(layers.Dense(self.output_n, activation='softmax'))
-        self.compile(optimizer='sgd',loss='kullback_leibler_divergence')
+        self.model.compile(optimizer='sgd',loss='kullback_leibler_divergence')
         print(self.model.summary())
 
 # =============================================================================

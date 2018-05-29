@@ -74,7 +74,7 @@ class TRPO(Agent):
 
     def __call__(self, rollout):
         
-        proba = rollout["proba"]
+        proba = rollout["output"]
         states = rollout["state"]
         actions = rollout["action"]
         
@@ -84,9 +84,6 @@ class TRPO(Agent):
 
         thprev = self.Flaten.get()
         
-        def fisher_vector_product(p):
-            return self.compute_fisher_vector_product(p, *args)+self.options["cg_damping"]*p
-        
         g = self.compute_policy_gradient(*args)
         
         losses_before = self.compute_losses(*args)
@@ -94,8 +91,8 @@ class TRPO(Agent):
         if np.allclose(g, 0):
             print("got zero gradient. not updating")
         else:
-            stepdir = m_utils.conjugate_gradient(fisher_vector_product, -g)
-            shs = .5*stepdir.dot(fisher_vector_product(stepdir))
+            stepdir = m_utils.conjugate_gradient(lambda x : self.fisher_vector_product(x,args), -g)
+            shs = .5*stepdir.dot(self.fisher_vector_product(stepdir,args))
             lm = np.sqrt(shs / self.options["max_kl"])
             print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
             fullstep = stepdir / lm
@@ -122,4 +119,5 @@ class TRPO(Agent):
         # print(action)
         return action
 
-
+    def fisher_vector_product(self,p,args):
+            return self.compute_fisher_vector_product(p, *args)+self.options["cg_damping"]*p
