@@ -43,12 +43,13 @@ class Roller(object):
 
     def get_episodes(self, length):
         
+        
         state = self.env.reset()
         
-        self.agent.policy.reset()
+        self.agent.set_epsilon(1)
         
         episode = self.memory.empty_episode()
-                
+        self.progbar.__init__(length)
         for i in range(length):
             
             self.progbar.add(1)
@@ -70,7 +71,7 @@ class Roller(object):
             if done:
                 state = self.env.reset()
             
-            self.agent.policy.decrement(1/length)
+            self.agent.decrement_eps(1/length)
         # vectorize results)
         episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
         # record the episodes

@@ -10,6 +10,7 @@ import utils.math as m_utils
 import DeepFunctions
 import keras.backend as K
 import utils.agent as utils
+import numpy as np
 
 from base_classes.agent import Agent
 
@@ -74,10 +75,10 @@ class TRPO(Agent):
     def __call__(self, rollout):
         
         proba = rollout["proba"]
-        states = rollout["states"]
-        actions = rollout["actions"]
+        states = rollout["state"]
+        actions = rollout["action"]
         
-        advantages = rollout["advantages"]
+        advantages = rollout["advantage"]
         
         args = (states, actions, advantages, proba)
 

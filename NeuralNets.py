@@ -30,9 +30,22 @@ class BaseNetwork(object):
         raise NotImplementedError
         
     def fit(self,X,Y,batch_size=50):
-        
+        #total = len(X)
+        #self.progbar.__init__(total)
         print("Fitting the NN:",X.shape, Y.shape)
         
+        #loss0 = []
+        #loss1 = []        
+        #self.progbar.add(batch_size)
+        #for i in range(batch_size,len(X),batch_size):
+
+#            loss0.append(self.model.train_on_batch(X[i-batch_size:i],Y[i-batch_size:i]))
+#            loss1.append(np.mean((self.model.predict(X[i-batch_size:i])-Y[i-batch_size:i])**2))
+#            
+#            self.progbar.add(batch_size)
+
+ #       print("Initial loss: %f, Final loss: %f"%(sum(loss0),sum(loss1)))
+  
         self.model.fit(X,Y,batch_size,1)      
     def zero_initializer(self):
 
@@ -53,10 +66,10 @@ class BaseNetwork(object):
             return self.model.predict(image)
 
     def save(self,name):
-        self.model.save_weights(name)
+        self.model.save(name)
 
     def load(self,name):
-        self.model.load_weights(name, by_name=False)
+        self.model = keras.models.load_model(name)
         
     @property
     def trainable_variables(self):
@@ -164,10 +177,14 @@ class Q_FCNet(BaseNetwork):
         
         
         inputs = layers.Input(shape=self.input_dim)
-        block1 = conv_block(inputs)
+        block1 = inputs# conv_block(inputs)
         x = layers.Flatten()(block1)
-        x = layers.Dense(256,activation="softplus")(x)
+        x = layers.Dense(512,activation="softplus")(x)
         #x = layers.Dense(25,activation="relu")(x)
+        x = layers.Dense(256,activation="relu")(x)
+        #x = layers.Dense(128,activation="relu")(x)
+        x = layers.Dense(256,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
         #block1 = conv_block(inputs)
         #x = layers.Flatten()(block1)
         #x = layers.Dense(128,activation='softplus')(x)
@@ -219,14 +236,14 @@ def RCNN_layer(input_fitlers, output_filters):
 
 
 def conv_block(inputs):
-    n_filters_1 = 16
-    k_size_1 = 2
-    stride_1 = 2
+    n_filters_1 = 3
+    k_size_1 = 1
+    stride_1 = 1
         
-    n_filters_2 = 24
+    n_filters_2 = 16
     k_size_2 = 2
     stride_2 = 2
-        
+    
     #a = layers.ZeroPadding2D()(inputs)
     a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
                                activation='relu')(inputs)

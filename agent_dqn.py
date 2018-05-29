@@ -21,9 +21,12 @@ class DQN(Agent):
 
     def act(self,state):
         
-        val = self.model.predict(state)
+        if np.random.rand()<self.eps:
+            return np.random.randint(self.actions_n)
+        return np.argmax(self.model.predict(state))
+        #val = self.model.predict(state)
         #weights = 1.0*(np.argmax(val)==val)
-        return self.policy.choose(val)
+        #return self.policy.choose(val)
     
     def reinforce(self,rollout,batch_size=50,epochs=1):
 
@@ -53,6 +56,7 @@ class DQN(Agent):
         self.log("Q MSE",np.linalg.norm(new_q-old_q))
 
         self.log("Average reward",np.mean(rewards))
+        self.log("Max reward",np.max(rewards))
         self.log("Min reward",np.min(rewards))
         self.log("Average return",np.mean(rollout["return"]))
 
@@ -62,4 +66,5 @@ class DQN(Agent):
         
     def set_epsilon(self,eps):
         self.eps = eps
-    
+    def decrement_eps(self,eps):
+        self.eps = max(self.eps - eps,0.1)

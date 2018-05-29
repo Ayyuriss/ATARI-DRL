@@ -163,26 +163,26 @@ class GRID(object):
         
         if action == 0:
             if self.x == self.grid_size-1:
-                self.x = self.x-1
+                #self.x = self.x-1
                 reward += -1 
             else:
                 self.x = self.x + 1
         elif action == 1:
             if self.x == 0:
-                self.x = self.x+1
+                #self.x = self.x+1
                 reward += -1 
             else:
                 self.x = self.x-1
         elif action == 2:
             if self.y == self.grid_size - 1:
                 reward += -1 
-                self.y = self.y - 1
+                #self.y = self.y - 1
             else:
                 self.y = self.y + 1
         elif action == 3:
             if self.y == 0:
                 reward += -1 
-                self.y = self.y + 1
+                #self.y = self.y + 1
             else:
                 self.y = self.y - 1
         else:
@@ -214,8 +214,8 @@ class GRID(object):
         self.board *= 0
         self.to_draw *= 0
         
-        self.x = np.random.randint(0, self.grid_size)
-        self.y = np.random.randint(0, self.grid_size)
+        self.x = 1#np.random.randint(0, self.grid_size)
+        self.y = 1#np.random.randint(0, self.grid_size)
 
         self.add_mouse()
 
@@ -227,9 +227,11 @@ class GRID(object):
         
         self.board*=0
         mouse_x,mouse_y = self.x,self.y
+        start = True
         while (mouse_x,mouse_y)==(self.x,self.y): 
-            mouse_x = np.random.randint(1, self.grid_size-1)
-            mouse_y = np.random.randint(1, self.grid_size-1)
+            mouse_x = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
+            mouse_y = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
+            start = not start
         self.board[mouse_x, mouse_y] = 1
         
     def current_state(self):
