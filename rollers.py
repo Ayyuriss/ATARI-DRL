@@ -25,23 +25,28 @@ class Roller(object):
 
     def rollout(self,num_steps):
 
-        self.get_episodes(num_steps)                
+        collected = 0
+        self.progbar.__init__(num_steps)
+        while collected < num_steps:
+            collected += self.get_episodes(num_steps-collected+1,1/num_steps)                
+        
         roll = self.memory.random_sample(num_steps)        
         return roll
         
-    def get_episodes(self, length):
+    def get_episode(self, length, eps):
         
         state = self.env.reset()        
-        self.agent.set_epsilon(1)
         
         episode = self.memory.empty_episode()
-        self.progbar.__init__(length)
-
-        for i in range(length):
+        
+        i = 0
+        
+        while i < length:
             
             self.progbar.add(1)
 
             # save current state
+
             episode["state"].append(state)
             
             # act
@@ -54,11 +59,15 @@ class Roller(object):
             episode["reward"].append(rew)        
             episode["terminated"].append(done)
             
+            
+            self.agent.decrement_eps(eps)
+            i += 1
+            
             if done:
                 state = self.env.reset()
+                break
             
-            self.agent.decrement_eps(1/length)
-
+            
         episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
 
         # record the episodes
