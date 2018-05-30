@@ -66,7 +66,7 @@ class DQN(Agent):
         
     def set_epsilon(self,eps):
         self.eps = eps
-        if eps == 0: self.theta = 0
+        if eps == 1: self.theta = 0
     def decrement_eps(self,eps):
         self.theta += eps
         self.eps = np.cos(3*np.pi*self.theta)**2

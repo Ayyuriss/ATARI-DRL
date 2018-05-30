@@ -175,7 +175,6 @@ class Q_CNNet(BaseNetwork):
         output = layers.Dense(self.output_n,activation='linear')(concat2)
         
         self.model = keras.models.Model(inputs, output)
-        self.model.compile(optimizer='sgd' ,loss ='mean_squared_error')
         optim = keras.optimizers.RMSprop(lr=0.00025)
         self.model.compile(optimizer=optim ,loss ='mean_squared_error')
         print(self.model.summary())
@@ -189,10 +188,11 @@ class Q_FCNet(BaseNetwork):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
         block1 = conv_block(block0)
-        reduct = reducer.ReductionLayer(3,16,0.001)
+        reduct = reducer.ReductionLayer(4,16,0.001)
         block1 = reduct(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
+        x = layers.Dense(256,activation="softplus")(x)
         x = layers.Dense(256,activation="softplus")(x)
         #x = layers.Dense(25,activation="relu")(x)
         x = layers.Dense(64,activation="relu")(x)
@@ -205,12 +205,9 @@ class Q_FCNet(BaseNetwork):
         #x = layers.Dense(64,activation='relu')(x)
         
         outputs = layers.Dense(self.output_n,activation='linear')(x)
-        
+        self.model = keras.models.Model(inputs, outputs)        
         optim = keras.optimizers.RMSprop(lr=0.00025)        
-        self.model = keras.models.Model(inputs,outputs)
-        self.model.compile(optimizer='adam',loss='mean_squared_error')
-        self.model.compile(optimizer='adam',loss=reduct.ReductionLoss)
-        self.model.compile(optimizer=optim ,loss ='mean_squared_error')
+        self.model.compile(optimizer=optim ,loss=reduct.ReductionLoss)
         print(self.model.summary())
         
         
