@@ -19,9 +19,9 @@ gc.collect()
 
 
 game = "grid"
-env = environment.GRID(grid_size=24)
+env = environment.GRID(grid_size=16,square_size=2)
 agent = DQN(env.states_dim,env.actions_n,'FC',0.99,1)
-agent.load("learnedgrid0.1")
+#agent.load("learnedgrid0.1")
 print(env.states_dim)
 roller = Roller(env, agent, 200000)
 

@@ -27,8 +27,10 @@ class Roller(object):
 
         collected = 0
         self.progbar.__init__(num_steps)
+        self.agent.set_epsilon(1)
+        self.agent.theta = 0        
         while collected < num_steps:
-            collected += self.get_episodes(num_steps-collected+1,1/num_steps)                
+            collected += self.get_episode(num_steps-collected+1,1/num_steps)                
         
         roll = self.memory.random_sample(num_steps)        
         return roll
@@ -74,7 +76,8 @@ class Roller(object):
         self.memory.record(episode)
         
         del(episode)
-
+        
+        return i
 
     def compute_advantage(self):
         # Compute baseline, advantage

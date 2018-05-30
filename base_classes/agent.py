@@ -43,7 +43,11 @@ class Agent(object):
         
     def load(self,name):
         print("Loading %s"%name)
-        return self.model.load(self.checkpoints+name)
+        self.model.load(self.checkpoints+name)
+        self.params = self.model.variables
+
+        self.Flaten = utils.Flattener(self.params)
+        
     def log(self, key,value):
         if key not in self.history.keys():    
             self.history[key] = [value]

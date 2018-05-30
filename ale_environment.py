@@ -123,7 +123,7 @@ class GRID(object):
         
         
         self.actions_n = 4
-        self.states_dim = (self.grid_size, self.grid_size,1)
+        self.states_dim = (self.grid_size, self.grid_size,2)
 
         self.reset()
         
@@ -189,13 +189,11 @@ class GRID(object):
         else:
             RuntimeError('Error: action not recognized')
 
-
         self.t = self.t + 1
+
         self.get_frame()
         
-        reward += self.board[self.x, self.y]
-        self.board[self.x, self.y] = 0
-
+        reward = reward + np.max(self.board[self.x:min(self.grid_size,self.x+self.square),self.y:min(self.grid_size,self.y+self.square)])
 
         game_over = self.t > self.max_time
         
@@ -215,8 +213,8 @@ class GRID(object):
         self.board *= 0
         self.to_draw *= 0
         
-        self.x = 1#np.random.randint(0, self.grid_size)
-        self.y = 1#np.random.randint(0, self.grid_size)
+        self.x = 2#np.random.randint(0, self.grid_size)
+        self.y = 2#np.random.randint(0, self.grid_size)
 
         self.add_mouse()
 
@@ -228,13 +226,12 @@ class GRID(object):
         
         self.board*=0
         mouse_x,mouse_y = self.x,self.y
-        start = True
         while (mouse_x,mouse_y)==(self.x,self.y): 
-            mouse_x = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
-            mouse_y = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
-            start = not start
+            mouse_x = np.random.randint(1, self.grid_size-self.square)
+            mouse_y = np.random.randint(1, self.grid_size-self.square)
+            
         self.board[mouse_x:min(self.grid_size,mouse_x+self.square), mouse_y:min(self.grid_size,mouse_y+self.square)] = 1
         
     def current_state(self):
         
-        return self.to_draw[int(self.t)]
+        return np.concatenate([self.to_draw[self.t-1],self.to_draw[self.t]],axis=-1)

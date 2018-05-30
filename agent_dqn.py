@@ -18,7 +18,7 @@ class DQN(Agent):
         super(DQN,self).__init__(model,epsilon)
         self.eps = epsilon
         self.discount = gamma
-
+        self.theta = 0
     def act(self,state):
         
         if np.random.rand()<self.eps:
@@ -66,5 +66,7 @@ class DQN(Agent):
         
     def set_epsilon(self,eps):
         self.eps = eps
+        if eps == 0: self.theta = 0
     def decrement_eps(self,eps):
-        self.eps = max(self.eps - eps,0.1)
+        self.theta -= eps
+        self.eps = np.cos(4*np.pi*self.theta)**2
