@@ -124,6 +124,7 @@ class GRID(object):
         
         self.actions_n = 4
         self.states_dim = (self.grid_size, self.grid_size,1)
+        self.states_dim = (self.grid_size, self.grid_size,2)
 
         self.reset()
         
@@ -194,6 +195,7 @@ class GRID(object):
         self.get_frame()
         
         reward += self.board[self.x, self.y]
+        reward += np.max(self.board[self.x:min(self.grid_size,self.x+self.square),self.y:min(self.grid_size,self.y+self.square)])
         self.board[self.x, self.y] = 0
 
 
@@ -209,6 +211,7 @@ class GRID(object):
 
         """This function resets the game and returns the initial state"""
         
+        self.start = True
         
         self.t = 0
         
@@ -229,12 +232,17 @@ class GRID(object):
         self.board*=0
         mouse_x,mouse_y = self.x,self.y
         start = True
+
         while (mouse_x,mouse_y)==(self.x,self.y): 
             mouse_x = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
             mouse_y = start*(self.grid_size - 3)+1#np.random.randint(1, self.grid_size-1)
             start = not start
+            mouse_x = self.start*(self.grid_size - 2*self.square-1)+self.square#np.random.randint(1, self.grid_size-1)
+            mouse_y = self.start*(self.grid_size - 2*self.square-1)+self.square#np.random.randint(1, self.grid_size-1)
+            self.start = not self.start
         self.board[mouse_x:min(self.grid_size,mouse_x+self.square), mouse_y:min(self.grid_size,mouse_y+self.square)] = 1
         
     def current_state(self):
         
         return self.to_draw[int(self.t)]
+        return np.concatenate([self.to_draw[int(self.t)-1],self.to_draw[self.t]],axis=-1)
