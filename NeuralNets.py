@@ -195,10 +195,10 @@ class Q_FCNet(BaseNetwork):
         x = layers.Flatten()(block1)
         x = layers.Dense(256,activation="softplus")(x)
         #x = layers.Dense(25,activation="relu")(x)
-        x = layers.Dense(256,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
         #x = layers.Dense(128,activation="relu")(x)
         #x = layers.Dense(256,activation="relu")(x)
-        x = layers.Dense(16,activation="relu")(x)
+        #x = layers.Dense(64,activation="relu")(x)
         #block1 = conv_block(inputs)
         #x = layers.Flatten()(block1)
         #x = layers.Dense(128,activation='softplus')(x)
@@ -253,19 +253,19 @@ def RCNN_layer(input_fitlers, output_filters):
 
 
 def conv_block(inputs):
-    n_filters_1 = 16
+    n_filters_1 = 8
     k_size_1 = 3
     stride_1 = 2
         
-    n_filters_2 = 32
-    k_size_2 = 4
+    n_filters_2 = 16
+    k_size_2 = 3
     stride_2 = 2
     
     #a = layers.ZeroPadding2D()(inputs)
     a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='relu')(inputs)
+                               activation='linear')(inputs)
     a = layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='relu')(a)
+                               activation='linear')(a)
     
 
     return a

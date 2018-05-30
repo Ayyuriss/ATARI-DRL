@@ -19,12 +19,9 @@ gc.collect()
 
 
 game = "grid"
-env = environment.GRID(grid_size=24)
-env = environment.GRID(grid_size=12)
+env = environment.GRID(grid_size=16,square_size=2)
 agent = DQN(env.states_dim,env.actions_n,'FC',0.99,1)
-agent.load("learnedgrid0.1")
 #agent.load("learnedgrid0.1")
-#agent.model.net.model.save_weights(".checkpoints/learnedgrid0.2")
 #agent.model.net.model.load_weights("./checkpoints/learnedgrid0.9999964469466264")
 print(env.states_dim)
 roller = Roller(env, agent, 200000)
@@ -34,7 +31,6 @@ time.sleep(5)
 #agent.model.net.zero_initializer()
 
 start = time.time()
-for i in range(100):
 for i in range(1000):
     print('='*80+"\n")
     print('%f'%(time.time()-start))
@@ -45,5 +41,4 @@ for i in range(1000):
         agent.reinforce(rollout)
     del(rollout)
     agent.save("learned"+game+str(agent.eps))
-    roller.play(i)    if not i%5: roller.play(i)
     if not i%5: roller.play(i)
