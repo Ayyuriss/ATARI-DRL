@@ -19,15 +19,15 @@ gc.collect()
 
 
 game = "grid"
-env = environments.GRID(grid_size=32,square_size=2)
-agent = DQN(env,'FC',0.99,50000)
+env = environments.GRID(grid_size=32,square_size=3)
+agent = DQN(env,'FC',0.99,100000)
+agent.load("learned"+game+str(0.1))
 #agent = TRPO(env.states_dim, env.actions_n,'FC',0.99)
 
 print(env.observation_space)
 time.sleep(5)
 #agent.model.net.zero_initializer()
 for i in range(100):
-    agent.train(10000,20)
-    agent.train(10000,5)
+    agent.train(10000,10)
     agent.save("learned"+game+str(agent.eps))
     agent.play(i)
