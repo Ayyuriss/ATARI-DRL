@@ -188,8 +188,8 @@ class Q_FCNet(BaseNetwork):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
         block1 = conv_block(block0)
-        self.reduct = reducer.ReductionLayer(4,16,0.001)
-        block1 = self.reduct(block0)
+        #self.reduct = reducer.ReductionLayer(4,16,0.001)
+        #block1 = self.reduct(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
         x = layers.Dense(256,activation="softplus")(x)
@@ -207,7 +207,7 @@ class Q_FCNet(BaseNetwork):
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.model = keras.models.Model(inputs, outputs)        
         optim = keras.optimizers.RMSprop(lr=0.00025)        
-        self.model.compile(optimizer=optim)
+        self.model.compile(optimizer=optim,loss='mse')
         print(self.model.summary())
     def fit(self,X,Y,batch_size=50):
 
@@ -255,7 +255,7 @@ def RCNN_layer(input_fitlers, output_filters):
 
 def conv_block(inputs):
     n_filters_1 = 8
-    k_size_1 = 3
+    k_size_1 = 4
     stride_1 = 2
         
     n_filters_2 = 16
@@ -264,10 +264,11 @@ def conv_block(inputs):
     
     #a = layers.ZeroPadding2D()(inputs)
     a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='linear')(inputs)
+                               activation='tanh')(inputs)
     a = layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='linear')(a)
-    
+                               activation='tanh')(a)
+    a = layers.Conv2D(32, k_size_2, strides=stride_2, 
+                               activation='tanh')(a)    
 
     return a
     

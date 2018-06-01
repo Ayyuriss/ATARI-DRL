@@ -72,7 +72,7 @@ class ReductionLayer(keras.models.Layer):
         
     def fit(self,X):
         
-        
+        pass
     def set_D(self,D):
         K.set_value(self.D_ridge,D)
         
