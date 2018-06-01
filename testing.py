@@ -28,5 +28,6 @@ time.sleep(5)
 #agent.model.net.zero_initializer()
 for i in range(100):
     agent.train(10000,20)
+    agent.train(10000,5)
     agent.save("learned"+game+str(agent.eps))
     agent.play(i)
