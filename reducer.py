@@ -46,8 +46,10 @@ class ReductionLayer(keras.models.Layer):
 
         self.kernel_shape = (1,self.dim,self.dict_size)
         
-        self.D = K.random_normal_variable((self.dim,self.dict_size),mean=0,scale = 1/min([self.dim,self.dict_size]))
-        
+        self.D0 = K.random_normal_variable((self.dim,self.dict_size),mean=0,scale = 1)
+
+        self.D = tf.matmul(tf.diag(1/tf.norm(self.D0,axis=1)),self.D0)
+
         self.D_ols = tf.matmul(pinv(tf.matmul(self.D,self.D,transpose_a=True)+self.alpha*tf.eye(self.dict_size)),
                                self.D,transpose_b=True)
         self.kernel = K.reshape(self.D_ols, self.kernel_shape)
@@ -65,17 +67,12 @@ class ReductionLayer(keras.models.Layer):
                 padding='valid',
                 data_format='channels_last',
                 dilation_rate=1)
-        self.loss = K.mean(K.pow(beta-self.patch_layer(inputs),2))
-        return K.conv1d(self.patch_layer(inputs),
-                self.kernel,
-                strides=1,
-                padding='valid',
-                data_format='channels_last',
-                dilation_rate=1)
         
-    def ReductionLoss(self,a,b):
-        return K.mean(K.pow(a - b,2)) + 0.01*self.loss
-    
+        return beta
+        
+    def fit(self,X):
+        
+        
     def set_D(self,D):
         K.set_value(self.D_ridge,D)
         

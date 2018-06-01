@@ -6,18 +6,14 @@ Created on Fri Apr 20 12:27:48 2018
 @author: thinkpad
 """
 import numpy as np
-import DeepFunctions
 import utils.agent as utils
 import collections
-import dummy_obj
 
 class Agent(object):
     
-    def __init__(self, model,epsilon=0):
+    def __init__(self, model, epsilon=0):
         
         self.model = model
-        
-        self.actions_n = model.actions_n
         
         self.history = collections.OrderedDict()
         
@@ -26,9 +22,7 @@ class Agent(object):
         self.Flaten = utils.Flattener(self.params)
         
         self.checkpoints = "./checkpoints/"
-        
-        self.policy = dummy_obj.Policy(epsilon,self.actions_n)
-        
+                
     def act(self,state,train=False):
         
         raise NotImplementedError
@@ -53,6 +47,7 @@ class Agent(object):
             self.history[key] = [value]
         else:
             self.history[key] = np.concatenate([self.history[key],[value]])
+
     def print_log(self):
         max_l = max(list(map(len,self.history.keys())))
         for k,v in self.history.items():

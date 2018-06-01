@@ -6,9 +6,9 @@ Created on Fri Apr 20 15:31:42 2018
 @author: thinkpad
 """
 
-import ale_environment as environment
+import environments
 from agent_dqn import DQN
-from rollers import Roller
+from agent_trpo import TRPO
 import gc
 import time
 gc.enable()
@@ -19,23 +19,14 @@ gc.collect()
 
 
 game = "grid"
-env = environment.GRID(grid_size=16,square_size=2)
-agent = DQN(env.states_dim,env.actions_n,'FC',0.99,1)
-#agent.load("learnedgrid0.1")
-#agent.model.net.model.load_weights("./checkpoints/learnedgrid0.9999964469466264")
-print(env.states_dim)
-roller = Roller(env, agent, 100000)
+env = environments.GRID(grid_size=32,square_size=2)
+agent = DQN(env,'FC',0.99,50000)
+#agent = TRPO(env.states_dim, env.actions_n,'FC',0.99)
 
+print(env.observation_space)
 time.sleep(5)
 #agent.model.net.zero_initializer()
-
-start = time.time()
-for i in range(1000):
-    print('='*80+"\n")
-    print('%f'%(time.time()-start))
-    rollout = roller.rollout(5000)
-    for _ in range(1):
-        agent.reinforce(rollout)
-    del(rollout)
+for i in range(100):
+    agent.train(10000,20)
     agent.save("learned"+game+str(agent.eps))
-    if not i%5: roller.play(i)
+    agent.play(i)

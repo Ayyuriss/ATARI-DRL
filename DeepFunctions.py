@@ -14,10 +14,10 @@ import numpy as np
 # ================================================================
 class BaseDeep(object):
 
-    def __init__(self,states_dim, actions_n, network_type='FC'):
+    def __init__(self,observation_space, action_space, network_type='FC'):
         
-        self.states_dim = states_dim
-        self.actions_n = actions_n
+        self.observation_dim = observation_space.shape
+        self.actions_n = action_space.shape[0]
         self.network_type = network_type
         self.setup_model()
         
@@ -61,9 +61,9 @@ class DeepPolicy(BaseDeep):
         assert self.network_type in ['FC','CNN']
             
         if self.network_type =='FC':
-            self.net = NeuralNets.Policy_FCNet(self.states_dim, self.actions_n)
+            self.net = NeuralNets.Policy_FCNet(self.observation_dim, self.actions_n)
         else:
-            self.net = NeuralNets.Policy_CNNet(self.states_dim, self.actions_n)
+            self.net = NeuralNets.Policy_CNNet(self.observation_dim, self.actions_n)
       
    
         
@@ -74,9 +74,9 @@ class DeepQ(BaseDeep):
         assert self.network_type in ['FC','CNN']
         
         if self.network_type =='FC':
-            self.net = NeuralNets.Q_FCNet(self.states_dim, self.actions_n)
+            self.net = NeuralNets.Q_FCNet(self.observation_dim, self.actions_n)
         else:
-            self.net = NeuralNets.Q_CNNet(self.states_dim, self.actions_n)
+            self.net = NeuralNets.Q_CNNet(self.observation_dim, self.actions_n)
         
         #self.net.zero_initializer()
             
@@ -85,24 +85,24 @@ class DeepQ(BaseDeep):
 # ================================================================
 # Value Function for baseline
 # ================================================================
-class ValueFunction(BaseDeep):
+class BaselineValueFunction(BaseDeep):
 
     def setup_model(self):
-        self.net = NeuralNets.SingleFCNet(self.states_dim,self.actions_n)                           
+        self.net = NeuralNets.SingleFCNet(self.self.observation_dim,self.actions_n)                           
         
     def _features(self, episode):
         states = episode["state"].astype('float32')
         states = states.reshape(states.shape[0], -1)
         proba = episode["output"].astype('float32')
         n = len(episode["reward"])
-        al = np.arange(n).reshape(-1, 1) / 10.0
+        al = episode["t"].astype('float32')/10
         ret = np.concatenate([states, proba, al, np.ones((n, 1))], axis=1)
         return ret
 
     def fit(self, episodes):
         featmat = np.concatenate([self._features(episode) for episode in episodes])
-        returns = np.concatenate([episode["returns"] for episode in episodes])
+        returns = np.concatenate([episode["return"] for episode in episodes])
         self.net.fit(featmat,returns)
 
-    def evaluate(self, episode):
+    def predict(self, episode):
         self.net.predict(self._features(episode))

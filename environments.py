@@ -27,11 +27,11 @@ class ALE(ALEInterface):
     def load_params(self):
         
         self._actions_raw = self.getMinimalActionSet().tolist()
-        self._actions_n = len(self.actions_set)
-        self._states_dim = OPTIONS["IMAGES_SIZE"]+(self.num_frames,)
+        self.action_space = Discrete(len(self._actions_raw))
+        self.observation_space = Continuous(0,1,OPTIONS["IMAGES_SIZE"]+(self.num_frames,))
         self._memory = collections.deque([],self.num_frames)
         self._start_lives = self.lives()
-        self._current_state = np.zeros(self._states_dim) 
+        self._current_state = np.zeros(self.observation_space.shape) 
         
         while len(self._memory)<self.num_frames:
             self.capture_current_frame()
@@ -88,17 +88,6 @@ class ALE(ALEInterface):
 
         return res
 
-
-    @property
-    def states_dim(self):
-        return self._states_dim
-    @property
-    def actions_n(self):
-        return self._actions_n
-    @property
-    def actions_set(self):
-        return self._actions_raw
-
 import skvideo
 import skvideo.io
 import skimage
@@ -114,16 +103,15 @@ class GRID(object):
         
         self.square = square_size
 
-        #board in which the cat moves
-
         self.board = np.zeros((self.grid_size,self.grid_size))
 
         # recording states
         self.to_draw = np.zeros((max_time+2, self.grid_size, self.grid_size,1))
         
         
-        self.actions_n = 4
-        self.states_dim = (self.grid_size, self.grid_size,2)
+        self.action_space = Discrete(4)
+        
+        self.observation_space = Continuous(-1,1,(self.grid_size, self.grid_size,2))
 
         self.reset()
         
@@ -214,8 +202,8 @@ class GRID(object):
         self.board *= 0
         self.to_draw *= 0
         
-        self.x = 2#np.random.randint(0, self.grid_size)
-        self.y = 2#np.random.randint(0, self.grid_size)
+        self.x = self.square#np.random.randint(0, self.grid_size)
+        self.y = self.square#np.random.randint(0, self.grid_size)
 
         self.add_mouse()
 
@@ -228,11 +216,42 @@ class GRID(object):
         self.board*=0
         mouse_x,mouse_y = self.x,self.y
         while (mouse_x,mouse_y)==(self.x,self.y): 
-            mouse_x = np.random.randint(1, self.grid_size-self.square)
-            mouse_y = np.random.randint(1, self.grid_size-self.square)
+            mouse_x = np.random.randint(self.square, self.grid_size-self.square)
+            mouse_y = np.random.randint(self.square, self.grid_size-self.square)
             
         self.board[mouse_x:min(self.grid_size,mouse_x+self.square), mouse_y:min(self.grid_size,mouse_y+self.square)] = 1
         
     def current_state(self):
         
         return np.concatenate([self.to_draw[self.t-1],self.to_draw[self.t]],axis=-1)
+    
+class Discrete(object):
+    
+    def __init__(self,n):        
+        self.n = n
+        self.shape = (n,)
+        self.dtype = np.int64
+
+    def sample(self):
+        return np.random.randint(self.n)
+    
+    def __repr__(self):
+        return "Discrete(%d)" % self.n
+        
+    def __eq__(self,m):
+        return self.n ==m
+
+class Continuous(object):
+    def __init__(self,low=None, high = None, shape=None, dtype = np.float32):
+        
+        self.shape = shape
+        self.dtype = dtype
+        
+        self.low = low + np.zeros(shape)
+        self.high = high + np.zeros(shape)
+        
+    def sample(self):
+        np.random.uniform(low = self.low, high = self.high)
+    
+    def __repr__(self):
+        return "Continuous" +str(self.shape)

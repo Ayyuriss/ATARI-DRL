@@ -188,8 +188,8 @@ class Q_FCNet(BaseNetwork):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
         block1 = conv_block(block0)
-        reduct = reducer.ReductionLayer(4,16,0.001)
-        block1 = reduct(block0)
+        self.reduct = reducer.ReductionLayer(4,16,0.001)
+        block1 = self.reduct(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
         x = layers.Dense(256,activation="softplus")(x)
@@ -207,9 +207,13 @@ class Q_FCNet(BaseNetwork):
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.model = keras.models.Model(inputs, outputs)        
         optim = keras.optimizers.RMSprop(lr=0.00025)        
-        self.model.compile(optimizer=optim ,loss=reduct.ReductionLoss)
+        self.model.compile(optimizer=optim)
         print(self.model.summary())
+    def fit(self,X,Y,batch_size=50):
+
+        print("Fitting the NN:",X.shape, Y.shape)
         
+        self.model.fit(X,Y,batch_size,1)      
         
         
 class Q_RCNNet(BaseNetwork):

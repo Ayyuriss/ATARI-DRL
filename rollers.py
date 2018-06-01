@@ -21,7 +21,7 @@ class Roller(object):
         
         self.progbar = Progbar(self.memory_max)
         
-        self.memory = dummy_obj.Memory(self.memory_max,["t","state","action","next_state","reward","return","terminated"])
+        self.memory = dummy_obj.Memory(self.memory_max,["t","state","action","next_state","reward","terminated"])
 
     def rollout(self,num_steps):
 
@@ -68,9 +68,6 @@ class Roller(object):
             if done:
                 state = self.env.reset()
                 break
-            
-            
-        episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
 
         # record the episodes
         self.memory.record(episode)
