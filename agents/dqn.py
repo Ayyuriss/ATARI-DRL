@@ -69,8 +69,9 @@ class DQN(Agent):
                 self.model.train_on_batch(rollout["state"],target_q)
                 
                 to_log+=1
-                
 
+
+            rewards = self.memory.sample(self.batch_size*self.log_freq)["reward"]
             new_theta = self.Flaten.get()
             #new_q = self.model.predict(rollout["state"])
             self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
@@ -133,6 +134,7 @@ class DQN(Agent):
         eps = self.eps
         
         self.eps = 0
+        self.set_eps(0)
         
         state = self.env.reset()
         #print(self.env.t,end=",")
