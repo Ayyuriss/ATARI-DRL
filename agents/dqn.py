@@ -45,10 +45,9 @@ class DQN(Agent):
         
         to_log = 0
         self.progbar.__init__(self.batch_size*self.log_freq)
-        _ = self.env.reset()
         
         while(self.done<self.train_steps):
-
+            _ = self.env.reset()
             old_theta = self.Flaten.get()
             
             while to_log <self.log_freq:
@@ -136,7 +135,7 @@ class DQN(Agent):
         self.eps = 0
         
         state = self.env.reset()
-        
+        #print(self.env.t,end=",")
         done = False
         
         while not done:
@@ -144,6 +143,7 @@ class DQN(Agent):
             action = self.act(state)
             
             state, _, done = self.env.step(action)
+            #print(self.env.t,end=",")
         
         self.env.draw("./plays/"+name)
         self.set_eps(eps)

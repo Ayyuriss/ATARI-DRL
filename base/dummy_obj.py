@@ -50,10 +50,10 @@ class Memory(object):
     def empty_episode(self):
         
         return   {s :[] for s in self.keys}
-    def sample(self):
-        
+    def sample(self,size=None):
+        if size is None: size=self.batch_size
         sample = self.empty_episode()
-        sample_idx = np.random.choice(np.arange(self.size),self.batch_size,replace=False)
+        sample_idx = np.random.choice(np.arange(self.size),size,replace=False)
         
         for k in self.memory.keys():
             sample[k] = np.concatenate([[self.memory[k][i]] for i in sample_idx])
