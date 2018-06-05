@@ -75,29 +75,29 @@ class GRID(object):
 
         
         if action == 0:
-            if self.x == self.grid_size-1:
-                self.x = self.x-1
+            if self.x >= self.grid_size-self.square-1:
+                self.x = self.x - self.square
                 reward += -1 
             else:
-                self.x = self.x + 1
+                self.x = self.x + self.square
         elif action == 1:
-            if self.x == 0:
-                self.x = self.x+1
+            if self.x <= self.square:
+                self.x = self.x + self.square
                 reward += -1 
             else:
-                self.x = self.x-1
+                self.x = self.x - self.square
         elif action == 2:
-            if self.y == self.grid_size - 1:
+            if self.y >= self.grid_size - self.square- 1:
                 reward += -1 
-                self.y = self.y - 1
+                self.y = self.y - self.square
             else:
-                self.y = self.y + 1
+                self.y = self.y + self.square
         elif action == 3:
-            if self.y == 0:
+            if self.y <= self.square:
                 reward += -1 
-                self.y = self.y + 1
+                self.y = self.y + self.square
             else:
-                self.y = self.y - 1
+                self.y = self.y - self.square
         else:
             RuntimeError('Error: action not recognized')
 

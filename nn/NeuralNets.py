@@ -185,24 +185,7 @@ def RCNN_layer(input_fitlers, output_filters):
     pass
 
 
-def conv_block(inputs):
-    n_filters_1 = 8
-    k_size_1 = 4
-    stride_1 = 2
-        
-    n_filters_2 = 16
-    k_size_2 = 3
-    stride_2 = 2
-    
-    #a = layers.ZeroPadding2D()(inputs)
-    a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='tanh')(inputs)
-    a = layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='tanh')(a)
-    a = layers.Conv2D(32, k_size_2, strides=stride_2, 
-                               activation='tanh')(a)    
 
-    return a
     
 def vgg_block(inputs):
     a = layers.Conv2D(64, 3, activation='relu')(inputs)

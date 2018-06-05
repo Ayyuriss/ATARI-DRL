@@ -109,12 +109,12 @@ class DeepQ(BaseDeep):
         
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
-        #block1 = conv_block(block0)
-        self.reducer = reducer.ReductionLayer(8,84,0.001)
-        block1 = self.reducer(block0)
+        block1 = conv_block(block0)
+        #self.reducer = reducer.ReductionLayer(8,84,0.001)
+        #block1 = self.reducer(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
-        x = layers.Dense(128,activation="softplus")(x)
+        x = layers.Dense(64,activation="softplus")(x)
         #x = layers.Dense(25,activation="relu")(x)
         x = layers.Dense(64,activation="relu")(x)
         #x = layers.Dense(128,activation="relu")(x)
@@ -161,3 +161,21 @@ class BaselineValueFunction(BaseDeep):
 
     def predict(self, episode):
         self.net.predict(self._features(episode))
+
+
+def conv_block(inputs):
+    n_filters_1 = 16
+    k_size_1 = 6
+    stride_1 = 3
+        
+    n_filters_2 = 32
+    k_size_2 = 4
+    stride_2 = 2
+    
+    #a = layers.ZeroPadding2D()(inputs)
+    a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
+                               activation='tanh')(inputs)
+    a = layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
+                               activation='tanh')(a)
+
+    return a
