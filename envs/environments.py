@@ -8,7 +8,6 @@ from ale_python_interface import ALEInterface
 import utils.env as utils
 import numpy as np
 import collections
-import gym
 from gym.envs.atari import AtariEnv
 
 OPTIONS = {"IMAGES_SIZE":(80,80)}
@@ -30,7 +29,7 @@ class ALE(ALEInterface):
         
         self._actions_raw = self.getMinimalActionSet().tolist()
         self.action_space = Discrete(len(self._actions_raw))
-        self.observation_space = Continuous(0,1,OPTIONS["IMAGES_SIZE"]+(self.num_frames,))
+        self.observation_space = Box(0,1,OPTIONS["IMAGES_SIZE"]+(self.num_frames,))
         self._memory = collections.deque([],self.num_frames)
         self._start_lives = self.lives()
         self._current_state = np.zeros(self.observation_space.shape) 
@@ -98,7 +97,7 @@ class GRID(object):
     
     def __init__(self, grid_size=16, max_time=500, square_size = 2):
         
-
+        self.name = "GRID"
         self.grid_size = grid_size
 
         self.max_time = max_time
@@ -113,11 +112,11 @@ class GRID(object):
         
         self.action_space = Discrete(4)
         
-        self.observation_space = Continuous(-1,1,(self.grid_size, self.grid_size,2))
+        self.observation_space = Box(-1,1,(self.grid_size, self.grid_size,2))
 
         self.reset()
         
-    def draw(self,e):
+    def draw(self,file):
         
         video = np.zeros((len(self.to_draw),self.grid_size, self.grid_size,3)).astype('uint8')
         
@@ -127,7 +126,7 @@ class GRID(object):
         #Turns the cat position to white
         video[self.to_draw[:,:,:,0]<0,:] = 255
 
-        skvideo.io.vwrite("./plays/"+str(e) + '.mp4', video,inputdict={'-r': '25'},outputdict={'-vcodec': 'libx264',
+        skvideo.io.vwrite(file+ '.mp4', video,inputdict={'-r': '25'},outputdict={'-vcodec': 'libx264',
                                                                                               '-pix_fmt': 'yuv420p',
                                                                                              '-r': '25'})
     
@@ -226,38 +225,7 @@ class GRID(object):
     def current_state(self):
         
         return np.concatenate([self.to_draw[self.t-1],self.to_draw[self.t]],axis=-1)
-    
-class Discrete(object):
-    
-    def __init__(self,n):        
-        self.n = n
-        self.shape = (n,)
-        self.dtype = np.int64
-
-    def sample(self):
-        return np.random.randint(self.n)
-    
-    def __repr__(self):
-        return "Discrete(%d)" % self.n
-        
-    def __eq__(self,m):
-        return self.n ==m
-
-class Continuous(object):
-    def __init__(self,low=None, high = None, shape=None, dtype = np.float32):
-        
-        self.shape = shape
-        self.dtype = dtype
-        
-        self.low = low + np.zeros(shape)
-        self.high = high + np.zeros(shape)
-        
-    def sample(self):
-        np.random.uniform(low = self.low, high = self.high)
-    
-    def __repr__(self):
-        return "Continuous" +str(self.shape)
-    
+  
 class Atari(AtariEnv):
     
     def __init__(self,name,frameskip, render=False, render_freq = 1):
@@ -267,7 +235,7 @@ class Atari(AtariEnv):
         
         self._actions_raw = self.getMinimalActionSet().tolist()
         self.action_space = Discrete(len(self._actions_raw))
-        self.observation_space = Continuous(0,1,OPTIONS["IMAGES_SIZE"]+(self.num_frames,))
+        self.observation_space = Box(0,1,OPTIONS["IMAGES_SIZE"]+(self.num_frames,))
         self._memory = collections.deque([],self.num_frames)
         self._start_lives = self.lives()
         self._current_state = np.zeros(self.observation_space.shape) 
@@ -317,3 +285,34 @@ class Atari(AtariEnv):
         self.capture_current_frame()
 
         return res
+    
+class Discrete(object):
+    
+    def __init__(self,n):        
+        self.n = n
+        self.shape = (n,)
+        self.dtype = np.int64
+
+    def sample(self):
+        return np.random.randint(self.n)
+    
+    def __repr__(self):
+        return "Discrete(%d)" % self.n
+        
+    def __eq__(self,m):
+        return self.n ==m
+
+class Box(object):
+    def __init__(self,low=None, high = None, shape=None, dtype = np.float32):
+        
+        self.shape = shape
+        self.dtype = dtype
+        
+        self.low = low + np.zeros(shape)
+        self.high = high + np.zeros(shape)
+        
+    def sample(self):
+        np.random.uniform(low = self.low, high = self.high)
+    
+    def __repr__(self):
+        return "Box" +str(self.shape)

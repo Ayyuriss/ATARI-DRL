@@ -6,56 +6,90 @@ Created on Thu Jan 18 13:07:46 2018
 """
 import sys,os
 import numpy as np
+import keras
+import keras.backend as K
+from keras import layers
+
 sys.path.append(os.path.dirname(os.getcwd()))
 
-from nn import NeuralNets
-
+from utils.console import Progbar
+from nn import reducer
 
 # ================================================================
 # Base class for Q and deep Policy
 # ================================================================
 class BaseDeep(object):
 
-    def __init__(self,observation_space, action_space, network_type='FC'):
+    def __init__(self,observation_space, action_space):
         
-        self.observation_dim = observation_space.shape
-        self.actions_n = action_space.shape[0]
-        self.network_type = network_type
+        self.input_dim = observation_space.shape
+        self.output_n = action_space.shape[0]
+        self.net = keras.models.Sequential()
+        #self.network_type = network_type
+
         self.setup_model()
+
+    def create_network(self):
+        raise NotImplementedError
+
+    def fit(self,X,Y,batch_size=50):
+        #total = len(X)
+        #self.progbar.__init__(total)
+
+        print("Fitting the NN:",X.shape, Y.shape)
+        self.model.fit(X,Y,batch_size,1)
+
+        """        
+        if hasattr(self,'reducer'):
+            print("Fitting the Reduction Layer")
+            self.reducer.fit(X,Y,batch_size)
+            """
+    def train_on_batch(self,X,Y):
+        self.net.train_on_batch(X,Y)
         
-    def setup_model(self):
-        raise (NotImplementedError, self.network_type)
+    def zero_initializer(self):
+        for x in self.trainable_variables:            
+            K.set_value(x, np.zeros(x.shape))
+
+    def reduce_weights(self,factor):
+        for x in self.trainable_variables:            
+            K.set_value(x, K.eval(x)/factor)
         
-    def predict(self,state):
-        
-        return self.net.predict(state)
-    
+    def predict(self,image):
+
+        if image.ndim == len(self.input_dim):
+            _image = image.reshape((1,)+image.shape)
+            return self.net.predict(_image)[0]
+        else:
+            return self.net.predict(image)
+
     def save(self,name):
         self.net.save(name)
-        
+
     def load(self,name):
-        self.net.load(name)
-    
-    def learn(self,states,target_q,batch_size):
+        self.net = keras.models.load_model(name)
         
-        self.net.fit(states,target_q,batch_size)
-
-
     @property
-    def variables(self):
-        return self.net.trainable_variables
+    def trainable_variables(self):
+        return self.net.trainable_weights
+    
     @property
     def input(self):
         return self.net.input
-        
+    
     @property
     def output(self):
         return self.net.output
 
+        
+    def setup_model(self):
+        raise (NotImplementedError, self.network_type)
+        
 # ================================================================
 # Object class for Q and policy
 # ================================================================
 
+"""
 class DeepPolicy(BaseDeep):
     
     def setup_model(self):
@@ -66,21 +100,38 @@ class DeepPolicy(BaseDeep):
             self.net = NeuralNets.Policy_FCNet(self.observation_dim, self.actions_n)
         else:
             self.net = NeuralNets.Policy_CNNet(self.observation_dim, self.actions_n)
-      
+"""   
    
         
 class DeepQ(BaseDeep):
     
     def setup_model(self):
         
-        assert self.network_type in ['FC','CNN']
+        inputs = layers.Input(shape=self.input_dim)
+        block0 = layers.BatchNormalization()(inputs)
+        #block1 = conv_block(block0)
+        self.reducer = reducer.ReductionLayer(8,84,0.001)
+        block1 = self.reducer(block0)
+        #block2 = conv_block(block1)
+        x = layers.Flatten()(block1)
+        x = layers.Dense(128,activation="softplus")(x)
+        #x = layers.Dense(25,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+        #x = layers.Dense(128,activation="relu")(x)
+        #x = layers.Dense(256,activation="relu")(x)
+        #x = layers.Dense(64,activation="relu")(x)
+        #block1 = conv_block(inputs)
+        #x = layers.Flatten()(block1)
+        #x = layers.Dense(128,activation='softplus')(x)
+        #x = layers.Dense(64,activation='relu')(x)
+         
+        outputs = layers.Dense(self.output_n,activation='linear')(x)
+        self.net = keras.models.Model(inputs, outputs)        
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
+        self.net.compile(optimizer=optim,loss='mse')
+        #self.reducer.compile(self.model)
+        print(self.net.summary())
         
-        if self.network_type =='FC':
-            self.net = NeuralNets.Q_FCNet(self.observation_dim, self.actions_n)
-        else:
-            self.net = NeuralNets.Q_CNNet(self.observation_dim, self.actions_n)
-        
-        #self.net.zero_initializer()
             
 
             
@@ -90,8 +141,10 @@ class DeepQ(BaseDeep):
 class BaselineValueFunction(BaseDeep):
 
     def setup_model(self):
-        self.net = NeuralNets.SingleFCNet(self.self.observation_dim,self.actions_n)                           
-        
+                           
+        self.net.add(layers.Dense(1, input_shape = self.input_dim,activation='tanh'))
+        self.net.compile(optimizer = 'adam',loss='mean_squared_error')
+        print(self.net.summary())
     def _features(self, episode):
         states = episode["state"].astype('float32')
         states = states.reshape(states.shape[0], -1)

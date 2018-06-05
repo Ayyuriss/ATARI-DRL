@@ -31,10 +31,11 @@ class Policy(object):
     
 class Memory(object):
     
-    def __init__(self, memory_size, keys):
+    def __init__(self, memory_size,batch_size, keys):
         
         self.keys = keys
         self.memory_size = memory_size
+        self.batch_size = batch_size
         self.forget()
     
     def record(self,episode):
@@ -49,10 +50,10 @@ class Memory(object):
     def empty_episode(self):
         
         return   {s :[] for s in self.keys}
-    def random_sample(self,size):
+    def sample(self):
         
         sample = self.empty_episode()
-        sample_idx = np.random.choice(np.arange(self.size),size,replace=False)
+        sample_idx = np.random.choice(np.arange(self.size),self.batch_size,replace=False)
         
         for k in self.memory.keys():
             sample[k] = np.concatenate([[self.memory[k][i]] for i in sample_idx])

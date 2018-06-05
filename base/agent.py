@@ -17,7 +17,7 @@ class Agent(object):
         
         self.history = collections.OrderedDict()
         
-        self.params = self.model.variables
+        self.params = self.model.trainable_variables
 
         self.Flaten = utils.Flattener(self.params)
         

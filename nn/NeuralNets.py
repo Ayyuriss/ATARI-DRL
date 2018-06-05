@@ -22,68 +22,6 @@ from nn import reducer
 # =============================================================================
 
 class BaseNetwork(object):
-
-    def __init__(self,states_dim,actions_n):
-
-        self.model = keras.models.Sequential()   
-
-        self.input_dim = states_dim
-        self.output_n = actions_n
-        self.create_network()
-        self.progbar = Progbar(1)
-
-
-    def create_network(self):
-        raise NotImplementedError
-
-    def fit(self,X,Y,batch_size=50):
-        #total = len(X)
-        #self.progbar.__init__(total)
-
-        print("Fitting the NN:",X.shape, Y.shape)
-        self.model.fit(X,Y,batch_size,1)
-
-        """        
-        if hasattr(self,'reducer'):
-            print("Fitting the Reduction Layer")
-            self.reducer.fit(X,Y,batch_size)
-            """
-
-    def zero_initializer(self):
-        for x in self.trainable_variables:            
-            K.set_value(x, np.zeros(x.shape))
-
-
-    def reduce_weights(self,factor):
-        for x in self.trainable_variables:            
-            K.set_value(x, K.eval(x)/factor)
-        
-
-    def predict(self,image):
-
-        if image.ndim == len(self.input_dim):
-            _image = image.reshape((1,)+image.shape)
-            return self.model.predict(_image)[0]
-        else:
-            return self.model.predict(image)
-
-    def save(self,name):
-        self.model.save(name)
-
-    def load(self,name):
-        self.model = keras.models.load_model(name)
-        
-    @property
-    def trainable_variables(self):
-        return self.model.trainable_weights
-    
-    @property
-    def input(self):
-        return self.model.input
-    
-    @property
-    def output(self):
-        return self.model.output
 # =============================================================================
 #  Fully Connected structures
 # =============================================================================
@@ -96,9 +34,7 @@ class ValueFunction(BaseNetwork):
         super(ValueFunction,self).__init__(self.input_dim, self.output_n)
 
     def create_network(self):
-        self.model.add(layers.Dense(1, input_shape = self.input_dim,activation='tanh'))
-        self.compile(optimizer = 'adam',loss='mean_squared_error')
-        print(self.model.summary())
+
     
 
 # =============================================================================
@@ -203,10 +139,10 @@ class Q_FCNet(BaseNetwork):
         #x = layers.Flatten()(block1)
         #x = layers.Dense(128,activation='softplus')(x)
         #x = layers.Dense(64,activation='relu')(x)
-        
+         
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.model = keras.models.Model(inputs, outputs)        
-        optim = keras.optimizers.RMSprop(lr=0.00025)   
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
         self.model.compile(optimizer=optim,loss='mse')
         #self.reducer.compile(self.model)
         print(self.model.summary())
