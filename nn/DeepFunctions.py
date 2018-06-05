@@ -4,9 +4,11 @@ Created on Thu Jan 18 13:07:46 2018
 
 @author: gamer
 """
-
-import NeuralNets
+import sys,os
 import numpy as np
+sys.path.append(os.path.dirname(os.getcwd()))
+
+from nn import NeuralNets
 
 
 # ================================================================

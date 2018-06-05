@@ -5,12 +5,16 @@ Created on Mon May 28 16:04:10 2018
 
 @author: thinkpad
 """
-
-from base_classes.agent import Agent
-import DeepFunctions
+import sys,os
 import numpy as np
-import dummy_obj
+
+sys.path.append(os.path.dirname(os.getcwd()))
+from base.agent import Agent
+from base import dummy_obj
+from nn import DeepFunctions
 from utils.console import Progbar
+
+
 class DQN(Agent):
     
     def __init__(self, env, neural_type, gamma, memory_max):
@@ -50,7 +54,7 @@ class DQN(Agent):
             for i in range(len(actions)):
                 target_q[i,actions[i]] = rewards[i] + not_final[i]* self.discount*max_Q_prim[i]
                         
-            self.model.learn(rollout["state"],target_q,batch_size)
+            self.model.learn(rollout["state"],target_q, batch_size)
                 
             new_theta = self.Flaten.get()
             new_q = self.model.predict(rollout["state"])

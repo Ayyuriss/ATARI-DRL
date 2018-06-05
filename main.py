@@ -6,9 +6,9 @@ Created on Fri Apr 20 15:31:42 2018
 @author: thinkpad
 """
 
-import environments
-from agent_dqn import DQN
-from agent_trpo import TRPO
+from envs import environments
+from agents.dqn import DQN
+from agents.trpo import TRPO
 import gc
 import time
 gc.enable()
@@ -21,7 +21,9 @@ gc.collect()
 game = "grid"
 env = environments.GRID(grid_size=32,square_size=3)
 agent = DQN(env,'FC',0.99,100000)
-agent.load("learned"+game+str(0.1))
+#agent.load("learned"+game+str(0.1))
+agent.model.net.reducer.display_update()
+#agent.model.net.reducer.compile(agent.model.net.model)
 #agent = TRPO(env.states_dim, env.actions_n,'FC',0.99)
 
 print(env.observation_space)

@@ -6,13 +6,17 @@ Created on Fri Apr 20 17:28:08 2018
 @author: thinkpad
 """
 
-import keras
+import sys,os
 import numpy as np
+
+import keras
 from keras import layers
 import keras.backend as K
-from utils.console import Progbar
 
-import reducer
+sys.path.append(os.path.dirname(os.getcwd()))
+
+from utils.console import Progbar
+from nn import reducer
 # =============================================================================
 # Base structure for Neural structure
 # =============================================================================
@@ -27,37 +31,33 @@ class BaseNetwork(object):
         self.output_n = actions_n
         self.create_network()
         self.progbar = Progbar(1)
+
+
     def create_network(self):
         raise NotImplementedError
-        
+
     def fit(self,X,Y,batch_size=50):
         #total = len(X)
         #self.progbar.__init__(total)
+
         print("Fitting the NN:",X.shape, Y.shape)
+        self.model.fit(X,Y,batch_size,1)
         
-        #loss0 = []
-        #loss1 = []        
-        #self.progbar.add(batch_size)
-        #for i in range(batch_size,len(X),batch_size):
+        if hasattr(self,'reducer'):
+            print("Fitting the Reduction Layer")
+            self.reducer.fit(X,Y,batch_size)
 
-#            loss0.append(self.model.train_on_batch(X[i-batch_size:i],Y[i-batch_size:i]))
-#            loss1.append(np.mean((self.model.predict(X[i-batch_size:i])-Y[i-batch_size:i])**2))
-#            
-#            self.progbar.add(batch_size)
 
- #       print("Initial loss: %f, Final loss: %f"%(sum(loss0),sum(loss1)))
-  
-        self.model.fit(X,Y,batch_size,1)      
     def zero_initializer(self):
-
         for x in self.trainable_variables:            
             K.set_value(x, np.zeros(x.shape))
-            
-    def reduce_weights(self,factor):
 
+
+    def reduce_weights(self,factor):
         for x in self.trainable_variables:            
             K.set_value(x, K.eval(x)/factor)
         
+
     def predict(self,image):
 
         if image.ndim == len(self.input_dim):
@@ -187,13 +187,12 @@ class Q_FCNet(BaseNetwork):
         
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
-        block1 = conv_block(block0)
-        #self.reduct = reducer.ReductionLayer(4,16,0.001)
-        #block1 = self.reduct(block0)
+        #block1 = conv_block(block0)
+        self.reducer = reducer.ReductionLayer(8,64,0.001)
+        block1 = self.reducer(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
-        x = layers.Dense(256,activation="softplus")(x)
-        x = layers.Dense(256,activation="softplus")(x)
+        x = layers.Dense(128,activation="tanh")(x)
         #x = layers.Dense(25,activation="relu")(x)
         x = layers.Dense(64,activation="relu")(x)
         #x = layers.Dense(128,activation="relu")(x)
@@ -206,14 +205,10 @@ class Q_FCNet(BaseNetwork):
         
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.model = keras.models.Model(inputs, outputs)        
-        optim = keras.optimizers.RMSprop(lr=0.00025)        
+        optim = keras.optimizers.RMSprop(lr=0.00025)   
         self.model.compile(optimizer=optim,loss='mse')
+        self.reducer.compile(self.model)
         print(self.model.summary())
-    def fit(self,X,Y,batch_size=50):
-
-        print("Fitting the NN:",X.shape, Y.shape)
-        
-        self.model.fit(X,Y,batch_size,1)      
         
         
 class Q_RCNNet(BaseNetwork):

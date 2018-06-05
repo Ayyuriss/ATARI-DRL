@@ -5,17 +5,21 @@ Created on Mon May 28 16:02:18 2018
 
 @author: thinkpad
 """
+import sys,os
+import numpy as np
+import keras.backend as K
+import scipy.signal
+
+sys.path.append(os.path.dirname(os.getcwd()))
 
 import utils.math as m_utils
-import DeepFunctions
-import keras.backend as K
 import utils.agent as utils
-import numpy as np
-import scipy.signal
 from utils.console import Progbar
-EPS = np.finfo(np.float32).tiny
 
-from base_classes.agent import Agent
+from nn import DeepFunctions
+from base.agent import Agent
+
+EPS = np.finfo(np.float32).tiny
 
 class TRPO(Agent):
     

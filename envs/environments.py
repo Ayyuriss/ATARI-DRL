@@ -9,6 +9,7 @@ import utils.env as utils
 import numpy as np
 import collections
 import gym
+from gym.envs.atari import AtariEnv
 
 OPTIONS = {"IMAGES_SIZE":(80,80)}
 CROP = {"breakout":(32,10,8,8)}
@@ -257,10 +258,10 @@ class Continuous(object):
     def __repr__(self):
         return "Continuous" +str(self.shape)
     
-class OpenAI(gym.Wrapper):
+class Atari(AtariEnv):
     
-    def __init__(self,name):
-        super(OpenAI,self).__init__(gym.make(name))
+    def __init__(self,name,frameskip, render=False, render_freq = 1):
+        super(Atari,self).__init__( game=name,frameskip=frameskip, obs_type='image')
     
     def load_params(self):
         
@@ -305,15 +306,6 @@ class OpenAI(gym.Wrapper):
         state = self.get_current_state()
         
         return state, reward, self.lives() != self._start_lives
-
-    def reset(self):
-        self.reset_game()
-        self.load_params()
-
-    def clone(self):
-        env = self.cloneSystemState()
-        env.params()
-        return env
 
 
     def act(self,action):
