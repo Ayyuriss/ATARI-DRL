@@ -19,7 +19,7 @@ gc.collect()
 
 
 game = "grid"
-env = environments.GRID(grid_size=32,square_size=3)
+env = environments.GRID(grid_size=32,square_size=2)
 agent = DQN(env,'FC',0.99,100000)
 #agent.load("learned"+game+str(0.1))
 agent.model.net.reducer.display_update()

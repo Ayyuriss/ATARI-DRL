@@ -67,6 +67,7 @@ class ReductionLayer(keras.models.Layer):
         #                              name='kernel')
         self.D_kernel = K.reshape(tf.matmul(self.D,self.D_ols),(1,self.dim,self.dim))
     
+        self.trainable_weights = [self.D0]
     def call(self,inputs):
         
         

@@ -42,11 +42,12 @@ class BaseNetwork(object):
 
         print("Fitting the NN:",X.shape, Y.shape)
         self.model.fit(X,Y,batch_size,1)
-        
+
+        """        
         if hasattr(self,'reducer'):
             print("Fitting the Reduction Layer")
             self.reducer.fit(X,Y,batch_size)
-
+            """
 
     def zero_initializer(self):
         for x in self.trainable_variables:            
@@ -192,7 +193,7 @@ class Q_FCNet(BaseNetwork):
         block1 = self.reducer(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
-        x = layers.Dense(128,activation="tanh")(x)
+        x = layers.Dense(128,activation="softplus")(x)
         #x = layers.Dense(25,activation="relu")(x)
         x = layers.Dense(64,activation="relu")(x)
         #x = layers.Dense(128,activation="relu")(x)
@@ -207,7 +208,7 @@ class Q_FCNet(BaseNetwork):
         self.model = keras.models.Model(inputs, outputs)        
         optim = keras.optimizers.RMSprop(lr=0.00025)   
         self.model.compile(optimizer=optim,loss='mse')
-        self.reducer.compile(self.model)
+        #self.reducer.compile(self.model)
         print(self.model.summary())
         
         
