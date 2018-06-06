@@ -1,0 +1,5 @@
+
+learnedGRID0.1_DQN:
+	game = "grid",env = GRID(grid_size=36,square_size=4,stochastic = False)
+	state (36,36,2)
+	stochastic = False
