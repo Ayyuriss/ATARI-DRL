@@ -5,12 +5,12 @@ Created on Mon May 28 16:02:18 2018
 
 @author: thinkpad
 """
-import sys,os
+import sys
 import numpy as np
 import keras.backend as K
 import scipy.signal
 
-sys.path.append(os.path.dirname(os.getcwd()))
+sys.path.append("../")
 
 import utils.math as m_utils
 import utils.agent as utils
@@ -28,43 +28,42 @@ class TRPO(Agent):
         ("max_kl", float, 1e-2, "KL divergence between old and new policy (averaged over state-space)"),
     ]
 
-    def __init__(self, env, neural_type, gamma):
-
-        policy = DeepFunctions.DeepPolicy(env, neural_type)
+    def __init__(self, env, gamma, max_steps):
+        
+        policy = DeepFunctions.DeepPolicy(env)
         
         super(TRPO, self).__init__(policy)
         
         self.discount = gamma
+        self.env = env
+        self.max_steps = max_steps
 
         self.setup_agent()
         
-        self.env = env
-        
+        self.valuefunc = DeepFunctions.BaselineValueFunction()
+
         self.episodes = []
-        
-        self.progbar = Progbar(10)
+        self.progbar = Progbar(100)
         
     def setup_agent(self):
         
         self.states = self.model.input
-        
         self.actions = K.placeholder(ndim=1, dtype = 'int32')
-        
         self.advantages = K.placeholder(ndim=1)
-
+        current_pi = self.model.output
+        
         old_pi = K.placeholder(shape=(None, self.actions_n))
 
-        current_pi = self.model.output
-
-        log_pi = utils.loglikelihood(self.actions, current_pi)
-        old_log_pi = utils.loglikelihood(self.actions, old_pi)
+        log_likeli_pi = utils.loglikelihood(self.actions, current_pi)
+        log_likeli_old_pi = utils.loglikelihood(self.actions, old_pi)
 
         N = K.cast(K.shape(self.states)[0],dtype='float32')
 
         # Policy gradient:
 
-        surr = (-1.0 / N) * K.sum( K.exp(log_pi - old_log_pi)*self.advantages)
-        pg = self.Flaten.flatgrad(self.params)
+        surrogate_loss = (-1.0 / N) * K.sum( K.exp(log_likeli_pi - log_likeli_old_pi)*self.advantages)
+        
+        policy_gradient = self.Flaten.flatgrad(self.model.output)
 
         current_pi_fixed = K.stop_gradient(current_pi)
         
@@ -74,25 +73,26 @@ class TRPO(Agent):
         
         flat_tangent = K.placeholder(ndim=1)
         
-        gvp = K.sum(grads*flat_tangent)
+        grad_vector_product = K.sum(grads*flat_tangent)
         
         
         # Fisher-vector product
-        fvp = self.Flaten.flatgrad(gvp)
         
-        ent = K.mean(utils.entropy(current_pi))
+        fisher_vector_product = self.Flaten.flatgrad(grad_vector_product)
+        
+        entropy = K.mean(utils.entropy(current_pi))
         
         kl = K.mean(utils.kl(old_pi, current_pi))
 
-        losses = [surr, kl, ent]
+        losses = [surrogate_loss, kl, entropy]
         
-        self.loss_names = ["surr", "kl", "ent"]
+        self.loss_names = ["Surrogate", "KL", "Entropy"]
 
+        args = [self.states, self.actions, self.advantages, log_likeli_old_pi]
 
-        args = [self.states, self.actions, self.advantages, old_log_pi]
-        self.compute_policy_gradient = K.function(args, [pg])
+        self.compute_policy_gradient = K.function(args, [policy_gradient])
         self.compute_losses = K.function(args, losses)
-        self.compute_fisher_vector_product = K.function([flat_tangent] + args, [fvp])
+        self.compute_fisher_vector_product = K.function([flat_tangent] + args, [fisher_vector_product])
 
     def train(self):
 
@@ -146,37 +146,35 @@ class TRPO(Agent):
 
     def fisher_vector_product(self,p,args):
             return self.compute_fisher_vector_product(p, *args)+self.options["cg_damping"]*p
-            
 
-    def rollout(self,num_frames, num_episodes):
+    def rollout(self, num_episodes):
 
         self.episodes = []
-        collected = 0
-        self.progbar.__init__(num_frames*num_episodes)
+        self.collected = 0
+        self.progbar.__init__(self.max_steps)
 
-        while collected < num_frames*num_episodes:
-            episode, new = self.get_episode(num_frames-collected)                
-            self.episodes.append(episode)
+        while self.collected < self.max_steps:
+            self.get_episode()
 
+    def get_episode(self):
         
-    def get_episode(self, length, eps):
-        
-        state = self.env.reset()     
+        state = self.env.reset()
         
         episode = {s : [] for s in ["t","state","action","reward","proba"]}
         
         i = 0
         
-        while i < length:
-            
-            
+        while self.collected < self.max_steps:
+                        
             self.progbar.add(1)
-
+            self.collected += 1
+            
             episode["t"].append(i)
             episode["state"].append(state)
             # act
             proba = self.model.predict(state)
             action = utils.choice_weighted(proba)
+            
             state, rew, done = self.env.step(action)
 
             episode["proba"].append(proba)
@@ -185,14 +183,14 @@ class TRPO(Agent):
             episode["terminated"].append(done)
             
             i += 1
+            self.collected +=1
             
             if done:
                 break
-            
-            
+
         episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
         
-        return episode,i
+        self.episodes.append(episode)
 
     def compute_advantage(self):
 

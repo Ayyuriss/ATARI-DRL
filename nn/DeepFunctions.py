@@ -20,30 +20,22 @@ from nn import reducer
 # ================================================================
 class BaseDeep(object):
 
-    def __init__(self,observation_space, action_space):
+    def __init__(self,env):
         
-        self.input_dim = observation_space.shape
-        self.output_n = action_space.shape[0]
+        self.input_dim = env.state_space.shape
+        self.output_n = env.action_space.n
         self.net = keras.models.Sequential()
-        #self.network_type = network_type
-
+        
         self.setup_model()
 
-    def create_network(self):
-        raise NotImplementedError
+    def setup_model(self):
+        raise (NotImplementedError, self.network_type)
 
     def fit(self,X,Y,batch_size=50):
-        #total = len(X)
-        #self.progbar.__init__(total)
-
+        
         print("Fitting the NN:",X.shape, Y.shape)
         self.model.fit(X,Y,batch_size,1)
 
-        """        
-        if hasattr(self,'reducer'):
-            print("Fitting the Reduction Layer")
-            self.reducer.fit(X,Y,batch_size)
-            """
     def train_on_batch(self,X,Y):
         self.net.train_on_batch(X,Y)
         
@@ -56,7 +48,7 @@ class BaseDeep(object):
             K.set_value(x, K.eval(x)/factor)
         
     def predict(self,image):
-
+        
         if image.ndim == len(self.input_dim):
             _image = image.reshape((1,)+image.shape)
             return self.net.predict(_image)[0]
@@ -81,9 +73,7 @@ class BaseDeep(object):
     def output(self):
         return self.net.output
 
-        
-    def setup_model(self):
-        raise (NotImplementedError, self.network_type)
+
         
 # ================================================================
 # Object class for Q and policy
@@ -141,7 +131,6 @@ class DeepQ(BaseDeep):
 class BaselineValueFunction(BaseDeep):
 
     def setup_model(self):
-                           
         self.net.add(layers.Dense(1, input_shape = self.input_dim,activation='tanh'))
         self.net.compile(optimizer = 'adam',loss='mean_squared_error')
         print(self.net.summary())

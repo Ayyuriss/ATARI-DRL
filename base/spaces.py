@@ -8,7 +8,6 @@ Created on Tue Jun  5 15:26:44 2018
 import numpy as np
 
 class Discrete(object):
-    
     def __init__(self,n):        
         self.n = n
         self.shape = (n,)
@@ -20,20 +19,14 @@ class Discrete(object):
     def __repr__(self):
         return "Discrete(%d)" % self.n
         
-    def __eq__(self,m):
-        return self.n ==m
 
-class Box(object):
-    def __init__(self,low=None, high = None, shape=None, dtype = np.float32):
-        
-        self.shape = shape
-        self.dtype = dtype
-        
-        self.low = low + np.zeros(shape)
-        self.high = high + np.zeros(shape)
-        
-    def sample(self):
-        np.random.uniform(low = self.low, high = self.high)
-    
+
+class Continuous(object):
+    def __init__(self,shape):        
+        self.shape = tuple(shape)
+
     def __repr__(self):
-        return "Box" +str(self.shape)
+        return "Continuous" +str(self.shape)
+    
+    def __eq__(self,s):
+        return self.shape == s

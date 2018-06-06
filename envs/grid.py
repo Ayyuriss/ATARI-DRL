@@ -14,19 +14,19 @@ import sys
 
 sys.path.append("../")
 
-from base.spaces import Discrete, Box
+from base.spaces import Discrete, Continuous
 
 class GRID(object):
     
     def __init__(self, grid_size=16, max_time=500, square_size = 2):
         
         self.name = "GRID"
-        self.grid_size = grid_size
-
+        
+        
         self.max_time = max_time
         
+        self.grid_size = grid_size
         self.square = square_size
-
         self.board = np.zeros((self.grid_size,self.grid_size))
 
         # recording states
@@ -35,7 +35,7 @@ class GRID(object):
         
         self.action_space = Discrete(4)
         
-        self.observation_space = Box(-1,1,(self.grid_size, self.grid_size,2))
+        self.state_space = Continuous(-1,1,(self.grid_size, self.grid_size,2))
 
         self.reset()
         
@@ -120,17 +120,13 @@ class GRID(object):
         """This function resets the game and returns the initial state"""
         
         self.start = True
-        
         self.t = 0
-        
         self.board *= 0
         self.to_draw *= 0
-        
         self.x = self.square#np.random.randint(0, self.grid_size)
         self.y = self.square#np.random.randint(0, self.grid_size)
 
         self.add_mouse()
-
         self.get_frame()
         
         return self.current_state()
@@ -148,4 +144,3 @@ class GRID(object):
     def current_state(self):
         
         return np.concatenate([self.to_draw[self.t-1],self.to_draw[self.t]],axis=-1)
-  
