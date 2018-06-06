@@ -8,7 +8,7 @@ Created on Fri Apr 20 15:31:42 2018
 
 from envs.grid import GRID
 from agents.dqn import DQN
-#from agents.trpo import TRPO
+from agents.trpo import TRPO
 import gc
 import time
 gc.enable()
@@ -22,10 +22,10 @@ game = "grid"
 env = GRID(grid_size=36,square_size=4,stochastic = False)
 time.sleep(5)
 
-agent = DQN(env, 0.99, 100000, 32, 1000000, log_freq = 1000, eps_start = 1, eps_decay = 1/7e5 )
-
+#agent = DQN(env, 0.99, 100000, 32, 1000000, log_freq = 1000, eps_start = 1, eps_decay = 1/7e5 )
+agent = TRPO(env, 0.99, 5000)
 #agent = TRPO(env,0.99,100000)
 
 print(env.state_space)
 agent.train()
-
+agent.play()

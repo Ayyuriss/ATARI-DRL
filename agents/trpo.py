@@ -23,10 +23,9 @@ EPS = np.finfo(np.float32).tiny
 
 class TRPO(Agent):
     
-    options = [
-        ("cg_damping", float, 1e-3, "Add multiple of the identity to Fisher matrix during CG"),
-        ("max_kl", float, 1e-2, "KL divergence between old and new policy (averaged over state-space)"),
-    ]
+    options = {"cg_damping": (1e-3, "Add multiple of the identity to Fisher matrix during CG"),
+        "max_kl": (1e-2, "KL divergence between old and new policy (averaged over state-space)"),
+    }
 
     def __init__(self, env, gamma, max_steps):
         
@@ -40,7 +39,7 @@ class TRPO(Agent):
 
         self.setup_agent()
         
-        self.valuefunc = DeepFunctions.BaselineValueFunction()
+        self.baseline = DeepFunctions.BaselineValueFunction(env)
 
         self.episodes = []
         self.progbar = Progbar(100)
@@ -52,7 +51,7 @@ class TRPO(Agent):
         self.advantages = K.placeholder(ndim=1)
         current_pi = self.model.output
         
-        old_pi = K.placeholder(shape=(None, self.actions_n))
+        old_pi = K.placeholder(shape=(None, self.env.action_space.n))
 
         log_likeli_pi = utils.loglikelihood(self.actions, current_pi)
         log_likeli_old_pi = utils.loglikelihood(self.actions, old_pi)
@@ -88,7 +87,7 @@ class TRPO(Agent):
         
         self.loss_names = ["Surrogate", "KL", "Entropy"]
 
-        args = [self.states, self.actions, self.advantages, log_likeli_old_pi]
+        args = [self.states, self.actions, self.advantages, old_pi]
 
         self.compute_policy_gradient = K.function(args, [policy_gradient])
         self.compute_losses = K.function(args, losses)
@@ -96,43 +95,48 @@ class TRPO(Agent):
 
     def train(self):
 
-        proba = np.concatenate([episode["proba"] for episode in self.episodes],axis=0)
+        self.rollout()
+        
+        proba = np.concatenate([episode["output"] for episode in self.episodes],axis=0)
         states = np.concatenate([episode["state"] for episode in self.episodes],axis=0)
         actions = np.concatenate([episode["action"] for episode in self.episodes],axis=0)
-        
         advantages = np.concatenate([episode["advantage"] for episode in self.episodes],axis=0)
         
         args = (states, actions, advantages, proba)
 
         thprev = self.Flaten.get()
         
-        g = self.compute_policy_gradient(*args)
+        g = self.compute_policy_gradient([*args])[0]
         
-        losses_before = self.compute_losses(*args)
+        losses_before = self.compute_losses([*args])
         
         if np.allclose(g, 0):
             print("got zero gradient. not updating")
         else:
+            print("Using Conjugate gradient")
             stepdir = m_utils.conjugate_gradient(lambda x : self.fisher_vector_product(x,args), -g)
             shs = .5*stepdir.dot(self.fisher_vector_product(stepdir,args))
-            lm = np.sqrt(shs / self.options["max_kl"])
-            print("lagrange multiplier:", lm, "gnorm:", np.linalg.norm(g))
+            lm = np.sqrt(shs / self.options["max_kl"][0])
+            
+            print("Lagrange multiplier:", lm, "norm(g):", np.linalg.norm(g))
+            
             fullstep = stepdir / lm
             neggdotstepdir = -g.dot(stepdir)
             def loss(th):
                 self.Flaten.set(th)
-                return self.compute_losses(*args)[0]
+                return self.compute_losses([*args])[0]
             
-            success, theta = m_utils.line_search(loss, thprev, fullstep, neggdotstepdir/lm)
-            print("success", success)
+            success, theta = m_utils.linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
+            print("Line-Search Success", success)
             self.Flaten.set(theta)
-        losses_after = self.compute_losses(*args)
+        losses_after = self.compute_losses([*args])
 
-        out = {}
         for (lname, lbefore, lafter) in zip(self.loss_names, losses_before, losses_after):
-            out[lname+"_before"] = lbefore
-            out[lname+"_after"] = lafter
-        return out
+            self.log(lname+"_before", lbefore)
+            self.log(lname+"_after", lafter)
+        self.print_log()
+        self.play()
+        self.model.save(self.env.name)
     
     def act(self,state,train=False):
         
@@ -141,13 +145,12 @@ class TRPO(Agent):
             action = utils.choice_weighted(proba)
         else:
             action = np.argmax(proba)
-        # print(action)
         return action
 
     def fisher_vector_product(self,p,args):
-            return self.compute_fisher_vector_product(p, *args)+self.options["cg_damping"]*p
+            return self.compute_fisher_vector_product([p]+[*args])[0]+self.options["cg_damping"][0]*p
 
-    def rollout(self, num_episodes):
+    def rollout(self):
 
         self.episodes = []
         self.collected = 0
@@ -155,19 +158,21 @@ class TRPO(Agent):
 
         while self.collected < self.max_steps:
             self.get_episode()
+            
+        self.compute_advantage()
+        self.baseline.fit(self.episodes)
 
     def get_episode(self):
         
         state = self.env.reset()
         
-        episode = {s : [] for s in ["t","state","action","reward","proba"]}
+        episode = {s : [] for s in ["t","state","action","reward","output","terminated"]}
         
         i = 0
         
         while self.collected < self.max_steps:
                         
             self.progbar.add(1)
-            self.collected += 1
             
             episode["t"].append(i)
             episode["state"].append(state)
@@ -176,10 +181,10 @@ class TRPO(Agent):
             action = utils.choice_weighted(proba)
             
             state, rew, done = self.env.step(action)
-
-            episode["proba"].append(proba)
+            
             episode["action"].append(action)
             episode["reward"].append(rew)        
+            episode["output"].append(proba)
             episode["terminated"].append(done)
             
             i += 1
@@ -187,8 +192,9 @@ class TRPO(Agent):
             
             if done:
                 break
-
-        episode["return"] = discount(np.array(episode["reward"]), self.agent.discount)
+        for k,v in episode.items():
+            episode[k] = np.array(v)
+        episode["return"] = discount(np.array(episode["reward"]), self.discount)
         
         self.episodes.append(episode)
 
@@ -210,14 +216,11 @@ class TRPO(Agent):
 
     def play(self,name='play'):
         
-        self.agent.set_epsilon(0)
         state = self.env.reset()
         done = False
         
         while not done:
-            
-            action = self.agent.act(state)
-            
+            action = self.act(state)
             state, _, done = self.env.step(action)
         
         self.env.draw(name)

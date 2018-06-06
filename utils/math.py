@@ -64,36 +64,6 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
 
 
 
-def line_search(f, x, fullstep, expected_improve_rate, LN_ACCEPT_RATE):
-    """ We perform the line search in direction of fullstep, we shrink the step 
-        exponentially (multi by beta**n) until the objective improves.
-        Without this line search, the algorithm occasionally computes
-        large steps that cause a catastrophic degradation of performance
-
-        f : callable , function to improve    
-        x : starting evaluation    
-        fullstep : the maximal value of the step length
-        expected_improve_rate : stop if 
-                    improvement_at_step_n/(expected_improve_rate*beta**n)>0.1
-    """
-    
-    accept_ratio = LN_ACCEPT_RATE
-    max_backtracks = 10
-    fval = f(x)
-    stepfrac=1
-    stepfrac=stepfrac*0.5
-    for stepfrac in .5**np.arange(max_backtracks):
-        xnew = x + stepfrac * fullstep
-        newfval = f(xnew)
-        actual_improve = fval - newfval
-        expected_improve = expected_improve_rate * stepfrac
-        ratio = actual_improve / expected_improve
-        if ratio > accept_ratio and actual_improve > 0:
-            return xnew
-
-    return x
-
-
 def conjugate_gradient(f_Ax, b, n_iters=10, gtol=1e-10):
     """Search for Ax-b=0 solution using conjugate gradient algorithm
        

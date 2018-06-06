@@ -13,6 +13,7 @@ import numpy as np
 import sys
 
 sys.path.append("../")
+PLAY_PATH="./plays/"
 
 from base.spaces import Discrete, Continuous
 
@@ -51,7 +52,7 @@ class GRID(object):
         #Turns the cat position to white
         video[self.to_draw[:,:,:,0]<0,:] = 255
 
-        skvideo.io.vwrite(file+ '.mp4', video,inputdict={'-r': '25'},outputdict={'-vcodec': 'libx264',
+        skvideo.io.vwrite(PLAY_PATH+file+ '.mp4', video,inputdict={'-r': '25'},outputdict={'-vcodec': 'libx264',
                                                                                               '-pix_fmt': 'yuv420p',
                                                                                              '-r': '25'})
     

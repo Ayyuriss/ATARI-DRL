@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 from utils.console import Progbar
 from nn import reducer
 
+CKPT_PATH = "./checkpoints/"
 # ================================================================
 # Base class for Q and deep Policy
 # ================================================================
@@ -56,10 +57,10 @@ class BaseDeep(object):
             return self.net.predict(image)
 
     def save(self,name):
-        self.net.save(name)
+        self.net.save(CKPT_PATH+self.name+name)
 
     def load(self,name):
-        self.net = keras.models.load_model(name)
+        self.net = keras.models.load_model(CKPT_PATH+name)
         
     @property
     def trainable_variables(self):
@@ -93,6 +94,10 @@ class DeepPolicy(BaseDeep):
 """   
 class DeepPolicy(BaseDeep):
 
+    def __init__(self,env):        
+        self.name = "policy"
+        super(DeepPolicy,self).__init__(env)
+        
     def setup_model(self):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
@@ -110,7 +115,9 @@ class DeepPolicy(BaseDeep):
    
         
 class DeepQ(BaseDeep):
-    
+    def __init__(self,env):        
+        self.name = "dqn"
+        super(DeepQ,self).__init__(env)
     def setup_model(self):
         
         inputs = layers.Input(shape=self.input_dim)
@@ -146,26 +153,34 @@ class DeepQ(BaseDeep):
 # ================================================================
 class BaselineValueFunction(BaseDeep):
 
+    def __init__(self,env):
+        self.name = "baseline"
+        self.input_dim = np.prod(env.state_space.shape) + env.action_space.n +2
+        self.output_n = 1
+        self.net = keras.models.Sequential()
+        self.setup_model()
+        
     def setup_model(self):
-        self.net.add(layers.Dense(1, input_shape = self.input_dim,activation='tanh'))
+        self.net.add(layers.Dense(self.output_n, input_shape = (self.input_dim,),activation='linear'))
         self.net.compile(optimizer = 'adam',loss='mean_squared_error')
-        print(self.net.summary())
+        print("Baseline Value Function\n", self.net.summary())
+    
     def _features(self, episode):
         states = episode["state"].astype('float32')
-        states = states.reshape(states.shape[0], -1)
+        states = states.reshape(len(states),-1)
         proba = episode["output"].astype('float32')
         n = len(episode["reward"])
-        al = episode["t"].astype('float32')/10
+        al = episode["t"].reshape(-1,1).astype('float32')/10
         ret = np.concatenate([states, proba, al, np.ones((n, 1))], axis=1)
         return ret
 
     def fit(self, episodes):
         featmat = np.concatenate([self._features(episode) for episode in episodes])
         returns = np.concatenate([episode["return"] for episode in episodes])
-        self.net.fit(featmat,returns)
+        self.net.fit(featmat,returns,batch_size=10,epochs=2)
 
     def predict(self, episode):
-        self.net.predict(self._features(episode))
+        return self.net.predict(self._features(episode))
 
 
 def conv_block(inputs):
