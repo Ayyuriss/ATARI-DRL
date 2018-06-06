@@ -17,7 +17,7 @@ from utils.console import Progbar
 
 class DQN(Agent):
     
-    def __init__(self, env, gamma, memory_max, batch_size, train_steps=1000000, log_freq = 1000):
+    def __init__(self, env, gamma, memory_max, batch_size, train_steps=1000000, log_freq = 1000,eps_start = 1):
         
         model = DeepFunctions.DeepQ(env.observation_space, env.action_space)
         
@@ -26,7 +26,7 @@ class DQN(Agent):
         self.env = env
         
         self.memory_max = memory_max
-        self.eps = 1
+        self.eps = eps_start
         self.train_steps = train_steps
         self.batch_size = batch_size
         self.done = 0
@@ -49,7 +49,9 @@ class DQN(Agent):
         while(self.done<self.train_steps):
             _ = self.env.reset()
             old_theta = self.Flaten.get()
-            
+            avg_rew = 0
+            max_rew = 0
+            min_rew = 0
             while to_log <self.log_freq:
 
                 self.get_episode()
@@ -58,7 +60,10 @@ class DQN(Agent):
                 actions = rollout["action"]
                 rewards = rollout["reward"]
                 not_final = np.logical_not(rollout["terminated"])
-            
+
+                avg_rew += np.mean(rewards)
+
+                max_rew,min_rew = max(np.max(rewards),max_rew),min(min_rew,np.min(rewards))
 
                 target_q = self.model.predict(rollout["next_state"])
                 max_Q_prim = np.max(target_q,axis=1)
@@ -70,15 +75,14 @@ class DQN(Agent):
                 
                 to_log+=1
 
-            rewards = self.memory.sample(self.batch_size*self.log_freq)["reward"]
             new_theta = self.Flaten.get()
             #new_q = self.model.predict(rollout["state"])
             self.log("Theta MSE",np.linalg.norm(new_theta-old_theta))
             #self.log("Q MSE",np.linalg.norm(new_q-old_q))
     
-            self.log("Average reward",np.mean(rewards))
-            self.log("Max reward",np.max(rewards))
-            self.log("Min reward",np.min(rewards))
+            self.log("Average reward",np.mean(avg_rew/self.log_freq))
+            self.log("Max reward",max_rew)
+            self.log("Min reward",min_rew)
             self.log("Epsilon",self.eps)
             self.print_log()
             to_log = 0

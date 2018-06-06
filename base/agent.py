@@ -38,7 +38,7 @@ class Agent(object):
     def load(self,name):
         print("Loading %s"%name)
         self.model.load(self.checkpoints+name)
-        self.params = self.model.variables
+        self.params = self.model.trainable_variables
 
         self.Flaten = utils.Flattener(self.params)
         

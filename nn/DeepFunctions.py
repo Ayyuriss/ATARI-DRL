@@ -110,13 +110,13 @@ class DeepQ(BaseDeep):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
         block1 = conv_block(block0)
-        #self.reducer = reducer.ReductionLayer(8,84,0.001)
+        #self.reducer = reducer.ReductionLayer(6,64,0.0001)
         #block1 = self.reducer(block0)
         #block2 = conv_block(block1)
         x = layers.Flatten()(block1)
-        x = layers.Dense(64,activation="softplus")(x)
+        x = layers.Dense(256,activation="relu")(x)
         #x = layers.Dense(25,activation="relu")(x)
-        x = layers.Dense(64,activation="relu")(x)
+        #x = layers.Dense(64,activation="relu")(x)
         #x = layers.Dense(128,activation="relu")(x)
         #x = layers.Dense(256,activation="relu")(x)
         #x = layers.Dense(64,activation="relu")(x)
@@ -165,8 +165,8 @@ class BaselineValueFunction(BaseDeep):
 
 def conv_block(inputs):
     n_filters_1 = 16
-    k_size_1 = 6
-    stride_1 = 3
+    k_size_1 = 8
+    stride_1 = 4
         
     n_filters_2 = 32
     k_size_2 = 4

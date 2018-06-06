@@ -19,9 +19,10 @@ gc.collect()
 
 
 game = "grid"
-env = GRID(grid_size=32,square_size=3)
-agent = DQN(env,0.99,100000,32)
-#agent.load("learned"+game+str(0.1))
+env = GRID(grid_size=36,square_size=4,stochastic = False)
+agent = DQN(env,0.99,100000,32,eps_start = 1)
+#agent.load("learnedGRID0.1")
+time.sleep(5)
 #agent.model.reducer.display_update()
 #agent.model.net.reducer.compile(agent.model.net.model)
 #agent = TRPO(env.states_dim, env.actions_n,'FC',0.99)
