@@ -64,16 +64,7 @@ class Policy_CNNet(BaseNetwork):
         self.model.compile(optimizer='sgd',loss='kullback_leibler_divergence')
         print(self.model.summary())
         
-class Policy_FCNet(BaseNetwork):
 
-    def create_network(self):
-        self.model.add(layers.MaxPooling2D(input_shape = self.input_dim))
-        self.model.add(layers.Flatten())
-        self.model.add(layers.Dense(1024,activation='tanh'))
-        self.model.add(layers.Dense(1024,activation='tanh'))
-        self.model.add(layers.Dense(self.output_n, activation='softmax'))
-        self.model.compile(optimizer='sgd',loss='kullback_leibler_divergence')
-        print(self.model.summary())
 
 # =============================================================================
 # Neural Nets for Q Learning

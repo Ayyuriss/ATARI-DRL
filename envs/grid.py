@@ -27,7 +27,7 @@ class GRID(object):
         
         self.grid_size = grid_size
         self.square = square_size
-        self.step = int(np.ceil(self.square/2))
+        self.move_step = int(np.ceil(self.square/2))
         self.stochastic = stochastic
         self.board = np.zeros((self.grid_size,self.grid_size))
 
@@ -37,7 +37,7 @@ class GRID(object):
         
         self.action_space = Discrete(4)
         
-        self.state_space = Continuous(-1,1,(self.grid_size, self.grid_size,2))
+        self.state_space = Continuous((self.grid_size, self.grid_size,2))
 
         self.reset()
         
@@ -78,28 +78,28 @@ class GRID(object):
 
         if action == 0:
             if self.x >= self.grid_size-self.square-1:
-                self.x = self.x - self.step
+                self.x = self.x - self.move_step
                 reward += -1 
             else:
-                self.x = self.x + self.step
+                self.x = self.x + self.move_step
         elif action == 1:
-            if self.x <= self.step:
-                self.x = self.x + self.step
+            if self.x <= self.move_step:
+                self.x = self.x + self.move_step
                 reward += -1 
             else:
-                self.x = self.x - self.step
+                self.x = self.x - self.move_step
         elif action == 2:
             if self.y >= self.grid_size - self.square- 1:
                 reward += -1 
-                self.y = self.y - self.step
+                self.y = self.y - self.move_step
             else:
-                self.y = self.y + self.step
+                self.y = self.y + self.move_step
         elif action == 3:
-            if self.y <= self.step:
+            if self.y <= self.move_step:
                 reward += -1 
-                self.y = self.y + self.step
+                self.y = self.y + self.move_step
             else:
-                self.y = self.y - self.step
+                self.y = self.y - self.move_step
         else:
             RuntimeError('Error: action not recognized')
 

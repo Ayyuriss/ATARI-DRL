@@ -17,9 +17,9 @@ from utils.console import Progbar
 
 class DQN(Agent):
     
-    def __init__(self, env, gamma, memory_max, batch_size, train_steps=1000000, log_freq = 1000,eps_start = 1):
+    def __init__(self, env, gamma, memory_max, batch_size, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
         
-        model = DeepFunctions.DeepQ(env.observation_space, env.action_space)
+        model = DeepFunctions.DeepQ(env)
         
         super(DQN,self).__init__(model)
         self.discount = gamma
@@ -33,8 +33,12 @@ class DQN(Agent):
         self.log_freq = log_freq
         self.progbar = Progbar(self.memory_max)
         self.memory = dummy_obj.Memory(self.memory_max,self.batch_size,["t","state","action","reward","next_state","terminated"])
+
+        self.eps_decay = eps_decay        
+        if eps_decay == -1:            
+            self.eps_decay = 1/train_steps
+        self.eps_min = eps_min
         
-        self.eps_decay = 0.9/1e6
     def act(self,state):
         
         if np.random.rand()<self.eps:
@@ -93,7 +97,7 @@ class DQN(Agent):
             to_log = 0 
             
     def set_eps(self,x):
-        self.eps = max(x,0.1)
+        self.eps = max(x,self.eps_min)
         
     def get_episode(self):
         

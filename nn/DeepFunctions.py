@@ -91,6 +91,22 @@ class DeepPolicy(BaseDeep):
         else:
             self.net = NeuralNets.Policy_CNNet(self.observation_dim, self.actions_n)
 """   
+class DeepPolicy(BaseDeep):
+
+    def setup_model(self):
+        inputs = layers.Input(shape=self.input_dim)
+        block0 = layers.BatchNormalization()(inputs)
+        block1 = conv_block(block0)
+        x = layers.Flatten()(block1)
+        x = layers.Dense(256,activation="relu")(x)
+         
+        outputs = layers.Dense(self.output_n,activation='softmax')(x)
+        self.net = keras.models.Model(inputs, outputs)
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
+        self.net.compile(optimizer=optim,loss='mse')
+        #self.reducer.compile(self.model)
+        print(self.net.summary())
+        
    
         
 class DeepQ(BaseDeep):
@@ -163,8 +179,8 @@ def conv_block(inputs):
     
     #a = layers.ZeroPadding2D()(inputs)
     a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='tanh')(inputs)
+                               activation='relu')(inputs)
     a = layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='tanh')(a)
+                               activation='relu')(a)
 
     return a
