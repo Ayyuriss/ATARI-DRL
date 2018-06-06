@@ -18,7 +18,7 @@ from base.spaces import Discrete, Continuous
 
 class GRID(object):
     
-    def __init__(self, grid_size=16, max_time=500, square_size = 2):
+    def __init__(self, grid_size=16, max_time=500, square_size = 2, stochastic=True):
         
         self.name = "GRID"
         
@@ -27,6 +27,8 @@ class GRID(object):
         
         self.grid_size = grid_size
         self.square = square_size
+        self.step = int(np.ceil(self.square/2))
+        self.stochastic = stochastic
         self.board = np.zeros((self.grid_size,self.grid_size))
 
         # recording states
@@ -73,31 +75,31 @@ class GRID(object):
         reward = 0
         # clear current position
 
-        
+
         if action == 0:
             if self.x >= self.grid_size-self.square-1:
-                self.x = self.x - self.square
+                self.x = self.x - self.step
                 reward += -1 
             else:
-                self.x = self.x + self.square
+                self.x = self.x + self.step
         elif action == 1:
-            if self.x <= self.square:
-                self.x = self.x + self.square
+            if self.x <= self.step:
+                self.x = self.x + self.step
                 reward += -1 
             else:
-                self.x = self.x - self.square
+                self.x = self.x - self.step
         elif action == 2:
             if self.y >= self.grid_size - self.square- 1:
                 reward += -1 
-                self.y = self.y - self.square
+                self.y = self.y - self.step
             else:
-                self.y = self.y + self.square
+                self.y = self.y + self.step
         elif action == 3:
-            if self.y <= self.square:
+            if self.y <= self.step:
                 reward += -1 
-                self.y = self.y + self.square
+                self.y = self.y + self.step
             else:
-                self.y = self.y - self.square
+                self.y = self.y - self.step
         else:
             RuntimeError('Error: action not recognized')
 
@@ -110,7 +112,8 @@ class GRID(object):
         game_over = self.t > self.max_time
         
         if reward ==1:
-             #game_over = True           
+             #game_over = True
+            print("mouse found")    
             self.add_mouse()
 
         return self.current_state(), reward, game_over
@@ -135,10 +138,17 @@ class GRID(object):
         
         self.board*=0
         mouse_x,mouse_y = self.x,self.y
-        while (mouse_x,mouse_y)==(self.x,self.y): 
-            mouse_x = np.random.randint(self.square, self.grid_size-self.square)
-            mouse_y = np.random.randint(self.square, self.grid_size-self.square)
-            
+        if self.stochastic:
+            while (mouse_x,mouse_y)==(self.x,self.y): 
+                mouse_x = np.random.randint(self.square, self.grid_size-self.square)
+                mouse_y = np.random.randint(self.square, self.grid_size-self.square)
+        else:
+
+            mouse_x = self.square+self.start*(self.grid_size-3*self.square)
+            mouse_y = self.square+self.start*(self.grid_size-3*self.square)
+            self.start = not self.start
+
+                    
         self.board[mouse_x:min(self.grid_size,mouse_x+self.square), mouse_y:min(self.grid_size,mouse_y+self.square)] = 1
         
     def current_state(self):
