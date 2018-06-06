@@ -88,6 +88,8 @@ class DQN(Agent):
             self.log("Max reward",max_rew)
             self.log("Min reward",min_rew)
             self.log("Epsilon",self.eps)
+            self.log("Done",self.done)
+            self.log("Total",self.train_steps)
             self.print_log()
             to_log = 0
             self.play()
