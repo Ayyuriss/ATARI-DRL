@@ -36,16 +36,11 @@ class ReplayMemory(object):
         self.keys = keys
         self.memory_size = memory_size
         self.forget()
-        self.size = 0
     
     def record(self,episode):
         for k in episode.keys():
             for v in episode[k]:
                 self.memory[k].append(v)
-        for k,v in episode.items():
-            self.size = self.size + len(v)
-            break
-                
                 
     def forget(self):
         self.memory = {s : collections.deque([],self.memory_size) for s in self.keys}
@@ -61,3 +56,7 @@ class ReplayMemory(object):
             sample[k] = np.concatenate([[self.memory[k][i]] for i in sample_idx])
             
         return sample
+    
+    @property
+    def size(self):
+        return len(self.memory[self.keys[0]])
