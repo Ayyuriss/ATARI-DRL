@@ -25,11 +25,13 @@ class TRPO(Agent):
     
     options = {"cg_damping": (1e-3, "Add multiple of the identity to Fisher matrix during CG"),
         "max_kl": (1e-2, "KL divergence between old and new policy (averaged over state-space)"),
+	"linesearch_accept": (1e-1, "Lineseach accept ratio")
     }
+    deep = DeepFunctions.DeepPolicy
 
     def __init__(self, env, gamma, max_steps):
         
-        policy = DeepFunctions.DeepPolicy(env)
+        policy = self.deep(env)
         
         super(TRPO, self).__init__(policy)
         
@@ -126,7 +128,7 @@ class TRPO(Agent):
                 self.Flaten.set(th)
                 return self.compute_losses([*args])[0]
             
-            success, theta = m_utils.linesearch(loss, thprev, fullstep, neggdotstepdir/lm)
+            success, theta = m_utils.linesearch(loss, thprev, fullstep, neggdotstepdir/lm,accept_ratio = self.options["linesearch_accept"][0])
             print("Line-Search Success", success)
             self.Flaten.set(theta)
         losses_after = self.compute_losses([*args])
@@ -224,6 +226,9 @@ class TRPO(Agent):
             state, _, done = self.env.step(action)
         
         self.env.draw(name)
+        
+class TRPO2(TRPO):
+    deep= DeepFunctions.DeepPolicy2
 
 def discount(x, gamma):
     assert x.ndim >= 1

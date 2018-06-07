@@ -1,0 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun  6 10:04:02 2018
+
+@author: gamer
+"""
+
+import sys
+sys.path.append("../")
+

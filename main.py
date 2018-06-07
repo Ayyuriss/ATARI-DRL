@@ -19,12 +19,12 @@ gc.collect()
 
 
 game = "grid"
-env = GRID(grid_size=36,square_size=4,stochastic = True)
+env = GRID(grid_size=36,square_size=4, stochastic = True)
 time.sleep(5)
 
-agent = DQN(env, 0.99, 100000, 32, 1000000, log_freq = 1000, eps_start = 1, eps_decay = 1/7e5 )
-agent.load("learnedGRID0.1")
-#agent = TRPO(env,0.99,100000)
+agent = DQN(env, 0.99, 100000, 32, 1000000, log_freq = 1000, eps_start = 0.1, eps_decay = 1/7e5 )
+agent.load("dqnGRID")
+#agent = TRPO(env,0.99,10000)
 
 print(env.state_space)
 agent.train()

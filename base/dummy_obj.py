@@ -29,38 +29,35 @@ class Policy(object):
             return np.random.randint(self.n)
         return np.argmax(weights)
     
-class Memory(object):
+class ReplayMemory(object):
     
-    def __init__(self, memory_size,batch_size, keys):
+    def __init__(self, memory_size, keys):
         
         self.keys = keys
         self.memory_size = memory_size
-        self.batch_size = batch_size
         self.forget()
+        self.size = 0
     
     def record(self,episode):
-        
         for k in episode.keys():
             for v in episode[k]:
                 self.memory[k].append(v)
+        for k,v in episode.items():
+            self.size = self.size + len(v)
+            break
+                
                 
     def forget(self):
         self.memory = {s : collections.deque([],self.memory_size) for s in self.keys}
         
     def empty_episode(self):
-        
         return   {s :[] for s in self.keys}
-    def sample(self,size=None):
-        if size is None: size=self.batch_size
+    
+    def sample(self,size):
+        
         sample = self.empty_episode()
         sample_idx = np.random.choice(np.arange(self.size),size,replace=False)
-        
         for k in self.memory.keys():
             sample[k] = np.concatenate([[self.memory[k][i]] for i in sample_idx])
-        
+            
         return sample
-    
-    @property
-    def size(self):
-        for k in self.keys:
-            return len(self.memory[k])

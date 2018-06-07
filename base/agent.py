@@ -20,8 +20,6 @@ class Agent(object):
         self.params = self.model.trainable_variables
 
         self.Flaten = utils.Flattener(self.params)
-        
-        self.checkpoints = "./checkpoints/"
                 
     def act(self,state,train=False):
         
@@ -33,11 +31,11 @@ class Agent(object):
         
     def save(self,name):
         print("Saving %s"%name)
-        self.model.save(self.checkpoints+name)
+        self.model.save(name)
         
     def load(self,name):
         print("Loading %s"%name)
-        self.model.load(self.checkpoints+name)
+        self.model.load(name)
         self.params = self.model.trainable_variables
 
         self.Flaten = utils.Flattener(self.params)

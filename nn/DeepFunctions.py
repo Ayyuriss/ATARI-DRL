@@ -97,7 +97,7 @@ class DeepPolicy(BaseDeep):
     def __init__(self,env):        
         self.name = "policy"
         super(DeepPolicy,self).__init__(env)
-        
+        #self.reduce_weights(5)
     def setup_model(self):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
@@ -111,7 +111,26 @@ class DeepPolicy(BaseDeep):
         self.net.compile(optimizer=optim,loss='mse')
         #self.reducer.compile(self.model)
         print(self.net.summary())
+
+class DeepPolicy2(BaseDeep):
+    def __init__(self,env):        
+        self.name = "dqn"
+        super(DeepPolicy2,self).__init__(env)
+    def setup_model(self):
         
+        inputs = layers.Input(shape=self.input_dim)
+        block0 = layers.BatchNormalization()(inputs)
+        x = layers.Flatten()(block0)
+        x = layers.Dense(64,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+
+        outputs = layers.Dense(self.output_n,activation='softmax')(x)
+        self.net = keras.models.Model(inputs, outputs)        
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
+        self.net.compile(optimizer=optim,loss='mse')
+        #self.reducer.compile(self.model)
+        print(self.net.summary())
    
         
 class DeepQ(BaseDeep):
@@ -138,6 +157,26 @@ class DeepQ(BaseDeep):
         #x = layers.Dense(128,activation='softplus')(x)
         #x = layers.Dense(64,activation='relu')(x)
          
+        outputs = layers.Dense(self.output_n,activation='linear')(x)
+        self.net = keras.models.Model(inputs, outputs)        
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
+        self.net.compile(optimizer=optim,loss='mse')
+        #self.reducer.compile(self.model)
+        print(self.net.summary())
+
+class DeepQ2(BaseDeep):
+    def __init__(self,env):        
+        self.name = "dqn"
+        super(DeepQ2,self).__init__(env)
+    def setup_model(self):
+        
+        inputs = layers.Input(shape=self.input_dim)
+        block0 = layers.BatchNormalization()(inputs)
+        x = layers.Flatten()(block0)
+        x = layers.Dense(64,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.net = keras.models.Model(inputs, outputs)        
         optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)

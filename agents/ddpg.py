@@ -15,7 +15,7 @@ from nn import DeepFunctions
 from utils.console import Progbar
 import keras.backend as K
 
-class DQN(Agent):
+class DDPG(Agent):
     
     deep = DeepFunctions.DeepQ
     
@@ -23,7 +23,7 @@ class DQN(Agent):
         
         model = self.deep(env)
         
-        super(DQN,self).__init__(model)
+        super(DDPG,self).__init__(model)
         self.discount = gamma
         self.env = env
         
@@ -34,7 +34,7 @@ class DQN(Agent):
         self.done = 0
         self.log_freq = log_freq
         self.progbar = Progbar(self.memory_max)
-        self.memory = dummy_obj.ReplayMemory(self.memory_max,["t","state","action","reward","next_state","terminated"])
+        self.memory = dummy_obj.Memory(self.memory_max,self.batch_size,["t","state","action","reward","next_state","terminated"])
 
         self.eps_decay = eps_decay        
         if eps_decay == -1:            
@@ -47,31 +47,17 @@ class DQN(Agent):
             return self.env.action_space.sample()
         return np.argmax(self.model.predict(state))
     
-    
-    def setup_model(self):
+    def setup_agent():
         
-        current_state = K.placeholder(shape=(None,)+self.env.state_space.shape)
-        next_state = K.placeholder(shape=(None,)+self.env.state_space.shape)
-        action = K.placeholder(ndim=1)
-        terminated = K.placeholder(ndim=1)
-        reward = K.placeholder(ndim=1)
-        current_Q = self.model.net(current_state)
-        next_Q = self.model.net(next_state)
+        current_state = K.
         
-        target_Q
-        
-        optimizer = tf.train.RMSProp()
-        
-        loss = K.mean(K.square(target_q-current_Q))
-        op = K.Function([current_state,next_state,action,reward,terminated],[optimizer.minimize(loss)])
-            
     def train(self):
         
         to_log = 0
         self.progbar.__init__(self.batch_size*self.log_freq)
         
         while(self.done<self.train_steps):
-            _,_,_ = self.env.reset()
+            _ = self.env.reset()
             old_theta = self.Flaten.get()
             avg_rew = 0
             max_rew = 0
@@ -79,7 +65,7 @@ class DQN(Agent):
             while to_log <self.log_freq:
 
                 self.get_episode()
-                rollout = self.memory.sample(self.batch_size)
+                rollout = self.memory.sample()
 
                 actions = rollout["action"]
                 rewards = rollout["reward"]
@@ -146,7 +132,7 @@ class DQN(Agent):
             self.set_eps(self.eps-self.eps_decay)
             
             if done:
-                state,_,_ = self.env.reset()
+                state = self.env.reset()
                 
         # record the episodes
         self.memory.record(episode)
@@ -161,7 +147,7 @@ class DQN(Agent):
         
         self.set_eps(0)
         
-        state,_,_ = self.env.reset()
+        state = self.env.reset()
         #print(self.env.t,end=",")
         done = False
         
@@ -175,7 +161,7 @@ class DQN(Agent):
         self.env.draw(name)
         self.set_eps(eps)
 
-class DQN2(DQN):
+class DDPG2(DDPG):
     
     deep = DeepFunctions.DeepQ2
     
