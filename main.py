@@ -26,6 +26,6 @@ agent = DQN(env, 0.99, 100000, 32, 1000000, log_freq = 1000, eps_start = 0.1, ep
 agent.load("dqnGRID")
 #agent = TRPO(env,0.99,10000)
 
-print(env.state_space)
+print(env.observation_space)
 agent.train()
 agent.play()

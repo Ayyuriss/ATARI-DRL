@@ -11,6 +11,7 @@ sys.path.append("../")
 import numpy as np
 from envs.grid import GRID,GRID2
 from agents.dqn import *
+from agents.ddqn import *
 from agents.trpo import *
 from nn import DeepFunctions
 import keras
@@ -21,7 +22,7 @@ if False:
     
     env = GRID2(grid_size=grid_size,square_size=4, stochastic = True)
     
-    inputs = keras.layers.Input(shape=env.state_space.shape)
+    inputs = keras.layers.Input(shape=env.observation_space.shape)
     
     cat = DeepFunctions.conv_block(inputs)
     cat = keras.layers.Flatten()(cat)
@@ -138,7 +139,8 @@ if False:
     for _ in range(10):agent2.train()
     
     grid_size = 36
-    env = GRID2(grid_size=grid_size,square_size=4, stochastic = True)
-    agent =  DQN2(env, 0.99, 50000, 32, 1000000, log_freq = 1000, eps_start = 1, eps_decay = 5e-5 )
+    env = GRID(grid_size=grid_size,square_size=4, stochastic = True)
+    agent =  DDQN(env, 0.99,32, 50000,10000,5000000, log_freq = 1000, eps_start = 0.1, eps_decay = 1e-6 )
+    agent.model.load('dqnGRID')
     agent.train()
     

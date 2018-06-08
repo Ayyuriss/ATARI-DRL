@@ -23,7 +23,7 @@ class BaseDeep(object):
 
     def __init__(self,env):
         
-        self.input_dim = env.state_space.shape
+        self.input_dim = env.observation_space.shape
         self.output_n = env.action_space.n
         self.net = keras.models.Sequential()
         
@@ -173,9 +173,9 @@ class DeepQ2(BaseDeep):
         inputs = layers.Input(shape=self.input_dim)
         block0 = layers.BatchNormalization()(inputs)
         x = layers.Flatten()(block0)
-        x = layers.Dense(64,activation="relu")(x)
-        x = layers.Dense(64,activation="relu")(x)
-        x = layers.Dense(64,activation="relu")(x)
+        x = layers.Dense(64,activation="tanh")(x)
+        x = layers.Dense(32,activation="softplus")(x)
+        x = layers.Dense(16,activation="relu")(x)
 
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.net = keras.models.Model(inputs, outputs)        
@@ -194,7 +194,7 @@ class BaselineValueFunction(BaseDeep):
 
     def __init__(self,env):
         self.name = "baseline"
-        self.input_dim = np.prod(env.state_space.shape) + env.action_space.n +2
+        self.input_dim = np.prod(env.observation_space.shape) + env.action_space.n +2
         self.output_n = 1
         self.net = keras.models.Sequential()
         self.setup_model()

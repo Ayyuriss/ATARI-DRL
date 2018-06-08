@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon May 28 16:04:10 2018
-
+,a
 @author: thinkpad
 """
 import sys,os
@@ -15,15 +15,19 @@ from nn import DeepFunctions
 from utils.console import Progbar
 import keras.backend as K
 
-class DQN(Agent):
-    
+class DDQN(Agent):
+    """
+    Double Deep Q Networks
+    """
     deep = DeepFunctions.DeepQ
     
-    def __init__(self, env, gamma, batch_size, memory_max, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
+    def __init__(self, env, gamma, batch_size, memory_max, double_update = 100000, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
         
         model = self.deep(env)
         
-        super(DQN,self).__init__(model)
+        super(DDQN,self).__init__(model)
+        self.target_model = self.deep(env)
+        self.target_model.net.set_weights(self.model.net.get_weights())
         self.discount = gamma
         self.env = env
         
@@ -40,6 +44,7 @@ class DQN(Agent):
         if eps_decay == -1:            
             self.eps_decay = 1/train_steps
         self.eps_min = eps_min
+        self.update_double = double_update
         
     def act(self,state):
         
@@ -47,29 +52,11 @@ class DQN(Agent):
             return self.env.action_space.sample()
         return np.argmax(self.model.predict(state))
     
-    
-    def setup_model(self):
-        
-        current_state = K.placeholder(shape=(None,)+self.env.observation_space.shape)
-        next_state = K.placeholder(shape=(None,)+self.env.observation_space.shape)
-        action = K.placeholder(ndim=1)
-        terminated = K.placeholder(ndim=1)
-        reward = K.placeholder(ndim=1)
-        current_Q = self.model.net(current_state)
-        next_Q = self.model.net(next_state)
-        
-        target_Q
-        
-        optimizer = tf.train.RMSProp()
-        
-        loss = K.mean(K.square(target_q-current_Q))
-        op = K.Function([current_state,next_state,action,reward,terminated],[optimizer.minimize(loss)])
-            
     def train(self):
         
         to_log = 0
         self.progbar.__init__(self.batch_size*self.log_freq)
-        
+        self.update = False
         while(self.done<self.train_steps):
             _ = self.env.reset()
             old_theta = self.Flaten.get()
@@ -79,25 +66,32 @@ class DQN(Agent):
             while to_log <self.log_freq:
 
                 self.get_episode()
+                
                 rollout = self.memory.sample(self.batch_size)
 
                 actions = rollout["action"]
                 rewards = rollout["reward"]
                 not_final = np.logical_not(rollout["terminated"])
 
-                avg_rew += np.mean(rewards)
 
-                max_rew,min_rew = max(np.max(rewards),max_rew),min(min_rew,np.min(rewards))
 
-                target_q = self.model.predict(rollout["next_state"])
-                max_Q_prim = np.max(target_q,axis=1)
+                target_q = self.target_model.predict(rollout["next_state"])
+                max_Q_prim = np.max(target_q, axis=1)
         
                 for i in range(len(actions)):
-                    target_q[i,actions[i]] = rewards[i] + not_final[i]* self.discount*max_Q_prim[i]
+                    target_q[i, actions[i]] = rewards[i] + not_final[i]* self.discount*max_Q_prim[i]
                 
-                self.model.train_on_batch(rollout["state"],target_q)
+                self.model.train_on_batch(rollout["state"], target_q)
                 
                 to_log+=1
+                # Updating the target q
+                if self.update:
+                    self.target_model.net.set_weights(self.model.net.get_weights())
+                    self.update = False
+                    print("\n Updated the target Q")
+                
+                avg_rew += np.mean(rewards)
+                max_rew, min_rew = max(np.max(rewards),max_rew),min(min_rew,np.min(rewards))
 
             new_theta = self.Flaten.get()
 
@@ -122,17 +116,18 @@ class DQN(Agent):
         
         episode = self.memory.empty_episode()
 
-        state = self.env.current_state()        
+        state = self.env.current_state()
         
         for i in range(self.batch_size):
-
+            
+            
             # save current state
             
             episode["state"].append(state)
             
             # act
             action = self.act(state)   
-            state, rew, done,info = self.env.step(action)
+            state, rew, done, info = self.env.step(action)
 
             episode["next_state"].append(state)            
             episode["t"].append(i)            
@@ -143,12 +138,13 @@ class DQN(Agent):
             self.set_eps(self.eps-self.eps_decay)
             
             if done:
-                state= self.env.reset()
+                state = self.env.reset()
             
-            self.progbar.add(1,values=("Info",info))
+            self.progbar.add(1,values=[("Info",info)])
             self.done += 1
             if not(self.done)%self.update_double:
                 self.update=True
+            
                 
         # record the episodes
         self.memory.record(episode)
@@ -171,13 +167,13 @@ class DQN(Agent):
             
             action = self.act(state)
             
-            state, _, done,_ = self.env.step(action)
+            state, _, done, info = self.env.step(action)
             #print(self.env.t,end=",")
         
         self.env.draw(name)
         self.set_eps(eps)
 
-class DQN2(DQN):
+class DDQN2(DDQN):
     
     deep = DeepFunctions.DeepQ2
     
