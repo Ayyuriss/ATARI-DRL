@@ -12,7 +12,7 @@ Created on Tue May  1 16:48:51 2018
 #==============================================================================
 
 
-from keras import backend as K
+import keras.backend as K
 import numpy as np
 
 def slice_2d(x, inds1):

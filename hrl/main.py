@@ -13,7 +13,7 @@ from envs.grid import GRID,GRID2
 from agents.dqn import *
 from agents.ddqn import *
 from agents.trpo import *
-from nn import DeepFunctions
+from nn import deepfunctions
 import keras
 import tensorflow as tf
 
@@ -24,7 +24,7 @@ if False:
     
     inputs = keras.layers.Input(shape=env.observation_space.shape)
     
-    cat = DeepFunctions.conv_block(inputs)
+    cat = deepfunctions.conv_block(inputs)
     cat = keras.layers.Flatten()(cat)
     cat = keras.layers.Dense(256, activation='tanh')(cat)
     cat = keras.layers.Dense(2, activation='linear')(cat)
@@ -32,7 +32,7 @@ if False:
     cat = keras.models.Model(inputs,cat)
     cat.compile('rmsprop','mse')
     cat.summary()
-    mouse = DeepFunctions.conv_block(inputs)
+    mouse = deepfunctions.conv_block(inputs)
     mouse = keras.layers.Flatten()(mouse)
     mouse = keras.layers.Dense(256, activation='tanh')(mouse)
     mouse = keras.layers.Dense(2, activation='linear')(mouse)

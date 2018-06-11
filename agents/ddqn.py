@@ -11,7 +11,7 @@ import numpy as np
 sys.path.append(os.path.dirname(os.getcwd()))
 from base.agent import Agent
 from base import dummy_obj
-from nn import DeepFunctions
+from nn import deepfunctions
 from utils.console import Progbar
 import keras.backend as K
 
@@ -19,7 +19,7 @@ class DDQN(Agent):
     """
     Double Deep Q Networks
     """
-    deep = DeepFunctions.DeepQ
+    deep = deepfunctions.DeepQ
  
 
     def __init__(self, env, gamma, batch_size, memory_max, double_update = 100000, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
@@ -176,5 +176,5 @@ class DDQN(Agent):
 
 class DDQN2(DDQN):
     
-    deep = DeepFunctions.DeepQ2
+    deep = deepfunctions.DeepQ2
     

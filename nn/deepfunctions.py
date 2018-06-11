@@ -12,8 +12,7 @@ from keras import layers
 
 sys.path.append(os.path.dirname(os.getcwd()))
 
-from utils.console import Progbar
-from nn import reducer
+from nn import neuralnets as nn
 
 # ================================================================
 # Base class for Q and deep Policy
@@ -34,7 +33,7 @@ class BaseDeep(object):
     def fit(self,X,Y,batch_size=50):
         
         print("Fitting the NN:",X.shape, Y.shape)
-        self.model.fit(X,Y,batch_size,1)
+        self.net.fit(X,Y,batch_size,1)
 
     def train_on_batch(self,X,Y):
         self.net.train_on_batch(X,Y)
@@ -136,6 +135,7 @@ class DeepQ(BaseDeep):
     def __init__(self,env):        
         self.name = "dqn"
         super(DeepQ,self).__init__(env)
+        
     def setup_model(self):
         
         inputs = layers.Input(shape=self.input_dim)
@@ -185,6 +185,40 @@ class DeepQ2(BaseDeep):
         print(self.net.summary())
         
             
+class DeepQ3(BaseDeep):
+    def __init__(self,env):        
+        self.name = "dqn2"
+        super(DeepQ2,self).__init__(env)
+        self.initialized = False
+    def setup_model(self):
+        inputs = layers.Input(shape=self.input_dim)
+
+        y = nn.ReductionLayer(8,64,0.001)(inputs)
+        y = layers.Flatten()(y)
+
+        self.y = layers.Dense(256,activation="tanh")(y)
+        g = K.Function([inputs],[self.y])
+        X = g([agent.memory.sample(1000)["state"]])[0]
+
+        self.init = nn.InitCentersRandom(X)
+        y = nn.RBFLayer(512,initializer=self.init)(self.y)
+        x = layers.Dense(128,activation="tanh")(y)
+        x = layers.Dense(128,activation="tanh")(x)
+        x = layers.Dense(128,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+
+        outputs = layers.Dense(self.output_n,activation='linear')(x)
+        self.net = keras.models.Model(inputs, outputs)        
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
+        self.net.compile(optimizer=optim,loss='mse')
+            #self.reducer.compile(self.model)
+        print(self.net.summary())        
+
+    def train_on_batch(self,X,Y):
+        if not self.initialized:
+            g = K.Function([self.inputs],[self.y])
+            Z = g([X])[0]
+            self.init.X = Z
 
             
 # ================================================================

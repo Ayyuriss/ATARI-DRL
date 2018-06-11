@@ -16,7 +16,7 @@ import utils.math as m_utils
 import utils.agent as utils
 from utils.console import Progbar
 
-from nn import DeepFunctions
+from nn import deepfunctions
 from base.agent import Agent
 
 EPS = np.finfo(np.float32).tiny
@@ -27,7 +27,7 @@ class TRPO(Agent):
         "max_kl": (1e-2, "KL divergence between old and new policy (averaged over state-space)"),
 	"linesearch_accept": (1e-1, "Lineseach accept ratio")
     }
-    deep = DeepFunctions.DeepPolicy
+    deep = deepfunctions.DeepPolicy
 
     def __init__(self, env, gamma, max_steps):
         self.agent_type = "TRPO"          
@@ -41,7 +41,7 @@ class TRPO(Agent):
 
         self.setup_agent()
         
-        self.baseline = DeepFunctions.BaselineValueFunction(env)
+        self.baseline = deepfunctions.BaselineValueFunction(env)
 
         self.episodes = []
         self.progbar = Progbar(100)
@@ -228,7 +228,7 @@ class TRPO(Agent):
         self.env.draw(name)
         
 class TRPO2(TRPO):
-    deep= DeepFunctions.DeepPolicy2
+    deep= deepfunctions.DeepPolicy2
 
 def discount(x, gamma):
     assert x.ndim >= 1

@@ -11,13 +11,13 @@ import numpy as np
 sys.path.append(os.path.dirname(os.getcwd()))
 from base.agent import Agent
 from base import dummy_obj
-from nn import DeepFunctions
+from nn import deepfunctions
 from utils.console import Progbar
 import keras.backend as K
 
 class DDPG(Agent):
     
-    deep = DeepFunctions.DeepQ
+    deep = deepfunctions.DeepQ
     
     def __init__(self, env, gamma, memory_max, batch_size, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
         
@@ -163,5 +163,5 @@ class DDPG(Agent):
 
 class DDPG2(DDPG):
     
-    deep = DeepFunctions.DeepQ2
+    deep = deepfunctions.DeepQ2
     

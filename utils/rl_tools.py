@@ -10,7 +10,7 @@ Created on Fri Apr 20 14:43:53 2018
 import numpy as np
 import scipy.signal
 import collections
-import DeepFunctions
+import deepfunctions
 
 EPS = np.finfo(np.float64).tiny
 
