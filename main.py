@@ -6,8 +6,9 @@ Created on Fri Apr 20 15:31:42 2018
 @author: thinkpad
 """
 
-from envs.grid import GRID
+from envs.grid import *
 from agents.dqn import DQN
+from agents.ddqn import *
 from agents.trpo import TRPO
 import gc
 import time
@@ -19,13 +20,12 @@ gc.collect()
 
 
 game = "grid"
-env = GRID(grid_size=36,square_size=4, stochastic = True)
+env = GRID2(grid_size=36,square_size=4, stochastic = True)
 time.sleep(5)
 
-agent = DQN(env, 0.99, 100000, 32, 1000000, log_freq = 1000, eps_start = 0.1, eps_decay = 1/7e5 )
-agent.load("dqnGRID")
+agent = DDQN2(env, 0.987, 32, memory_max=50000,train_steps= 10000000, double_update = 1000, eps_start = 1, eps_decay = 1e-6)
+#agent.load("dqnGRID")
 #agent = TRPO(env,0.99,10000)
 
 print(env.observation_space)
 agent.train()
-agent.play()

@@ -15,12 +15,11 @@ sys.path.append(os.path.dirname(os.getcwd()))
 from utils.console import Progbar
 from nn import reducer
 
-CKPT_PATH = "./checkpoints/"
 # ================================================================
 # Base class for Q and deep Policy
 # ================================================================
 class BaseDeep(object):
-
+    name = "Base"
     def __init__(self,env):
         
         self.input_dim = env.observation_space.shape
@@ -57,10 +56,10 @@ class BaseDeep(object):
             return self.net.predict(image)
 
     def save(self,name):
-        self.net.save(CKPT_PATH+self.name+name)
+        self.net.save(name+self.name)
 
     def load(self,name):
-        self.net = keras.models.load_model(CKPT_PATH+name)
+        self.net = keras.models.load_model(name)
         
     @property
     def trainable_variables(self):
@@ -166,16 +165,17 @@ class DeepQ(BaseDeep):
 
 class DeepQ2(BaseDeep):
     def __init__(self,env):        
-        self.name = "dqn"
+        self.name = "dqn2"
         super(DeepQ2,self).__init__(env)
     def setup_model(self):
         
         inputs = layers.Input(shape=self.input_dim)
-        block0 = layers.BatchNormalization()(inputs)
-        x = layers.Flatten()(block0)
-        x = layers.Dense(64,activation="tanh")(x)
-        x = layers.Dense(32,activation="softplus")(x)
-        x = layers.Dense(16,activation="relu")(x)
+        x = layers.Flatten()(inputs)
+        x = layers.Dense(128,activation="softplus")(x)
+        x = layers.Dense(128,activation="softplus")(x)
+        x = layers.Dense(128,activation="softplus")(x)
+        x = layers.Dense(128,activation="softplus")(x)
+        x = layers.Dense(64,activation="relu")(x)
 
         outputs = layers.Dense(self.output_n,activation='linear')(x)
         self.net = keras.models.Model(inputs, outputs)        

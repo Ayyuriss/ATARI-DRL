@@ -30,7 +30,7 @@ class TRPO(Agent):
     deep = DeepFunctions.DeepPolicy
 
     def __init__(self, env, gamma, max_steps):
-        
+        self.agent_type = "TRPO"          
         policy = self.deep(env)
         
         super(TRPO, self).__init__(policy)

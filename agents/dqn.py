@@ -18,11 +18,11 @@ import keras.backend as K
 class DQN(Agent):
     
     deep = DeepFunctions.DeepQ
-    
+
     def __init__(self, env, gamma, batch_size, memory_max, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
         
         model = self.deep(env)
-        
+        self.agent_type = "DQN"  
         super(DQN,self).__init__(model)
         self.discount = gamma
         self.env = env

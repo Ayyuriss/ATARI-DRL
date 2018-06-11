@@ -20,11 +20,12 @@ class DDQN(Agent):
     Double Deep Q Networks
     """
     deep = DeepFunctions.DeepQ
-    
+ 
+
     def __init__(self, env, gamma, batch_size, memory_max, double_update = 100000, train_steps=1000000, log_freq = 1000, eps_start = 1, eps_decay = -1, eps_min = 0.1):
         
         model = self.deep(env)
-        
+        self.agent_type = "DDQN"  
         super(DDQN,self).__init__(model)
         self.target_model = self.deep(env)
         self.target_model.net.set_weights(self.model.net.get_weights())

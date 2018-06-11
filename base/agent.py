@@ -9,6 +9,8 @@ import numpy as np
 import utils.agent as utils
 import collections
 
+CHECK_PATH = "./checkpoints/"
+
 class Agent(object):
     
     def __init__(self, model, epsilon=0):
@@ -31,11 +33,11 @@ class Agent(object):
         
     def save(self,name):
         print("Saving %s"%name)
-        self.model.save(name)
+        self.model.save(CHECK_PATH+self.agent_type+name)
         
     def load(self,name):
         print("Loading %s"%name)
-        self.model.load(name)
+        self.model.load(CHECK_PATH+agent_type+name)
         self.params = self.model.trainable_variables
 
         self.Flaten = utils.Flattener(self.params)

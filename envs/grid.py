@@ -18,12 +18,8 @@ PLAY_PATH="./plays/"
 from base.spaces import Discrete, Continuous
 
 class GRID(object):
-    
+    name = "GRID"
     def __init__(self, grid_size=16, max_time=500, square_size = 2, stochastic=True):
-        
-        self.name = "GRID"
-        
-        
         self.max_time = max_time
         
         self.grid_size = grid_size
@@ -166,7 +162,7 @@ class GRID(object):
         return np.array([self.x,self.y])/self.grid_size
 
 class GRID2(GRID):
-    
+    name = "GRID2"
     def __init__(self,*args,**kwargs):
         super(GRID2,self).__init__(*args,**kwargs)
         self.observation_space = Continuous((2,2,1))
