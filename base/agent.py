@@ -6,7 +6,6 @@ Created on Fri Apr 20 12:27:48 2018
 @author: thinkpad
 """
 import numpy as np
-import utils.agent as utils
 import collections
 
 CHECK_PATH = "./checkpoints/"
@@ -21,7 +20,6 @@ class Agent(object):
         
         self.params = self.model.trainable_variables
 
-        self.Flaten = utils.Flattener(self.params)
                 
     def act(self,state,train=False):
         
@@ -37,10 +35,9 @@ class Agent(object):
         
     def load(self,name):
         print("Loading %s"%name)
-        self.model.load(CHECK_PATH+agent_type+name)
+        self.model.load(CHECK_PATH+self.agent_type+name)
         self.params = self.model.trainable_variables
 
-        self.Flaten = utils.Flattener(self.params)
         
     def log(self, key,value):
         if key not in self.history.keys():    

@@ -18,9 +18,11 @@ from baselines.common.mpi_adam import MpiAdam
 import utils.math as m_utils
 import utils.console as c_utils
 
+np.set_printoptions(precision=3)
+LOG_PATH = "./Result/"
 class TRPO(object):
-
-    def __init__(self, env, env_test, seed, policy_func, *,
+    name = "TRPO"
+    def __init__(self, env, seed, policy_func, *,
         timesteps_per_batch, # what to train on
         max_kl, cg_iters,
         gamma, lam, # advantage estimation
@@ -28,40 +30,46 @@ class TRPO(object):
         cg_damping=1e-2,
         vf_stepsize=3e-4,
         vf_iters =3,
-        max_timesteps=0, max_episodes=0, max_iters=0,  # time constraint
-        callback=None
-        ):
+        max_timesteps=0, max_episodes=0, max_iters=0):
 
-        np.set_printoptions(precision=3)
+        
+        self.gamma = gamma
+
+        self.policy = policy_func(env)
+        self.old_policy = policy_func(env)
+        
         
         self.env = env
-        
-        # Setup losses and stuff
-        # ----------------------------------------
-        self.observation_space = env.observation_space
-        self.action_space = env.action_space
+        self.timesteps_per_batch = timesteps_per_batch
+        self.max_kl = max_kl
+        self.cg_iters = cg_iters
+        self.entropy_coeff = entropy_coeff
+        self.cg_damping = cg_damping
+        self.vf_stepsize = vf_stepsize
+        self.vf_iters = vf_iters
+        self.max_timesteps = max_timesteps
+        self.max_episodes = max_episodes
+        self.max_iters = max_iters
         
         self.setup_agent()
-        self.gamma = gamma
-        self.entropy_coeff = entropy_coeff
-        self.callback = callback
+
         
-                #---for testing
+        #---for testing
             
-        reward_path = "./Result/"
+
         import pathlib
-        try: 
-            pathlib.Path("./Result/" + self.env.name).mkdir(parents=True, exist_ok=True) 
-            reward_path = "./Result/" + self.env.name + "/"
+        try:
+            pathlib.Path(LOG_PATH + "/"+self.env.name).mkdir(parents=True, exist_ok=True) 
+            reward_path = LOG_PATH + self.env.name + "/"
         except:
             print("cannot create result and model directories.")
     
         expname = "TRPO_%s_s%d" % (self.env.name, self.seed)
         print(expname)
         print("Seed: %d" % (self.seed))
-        filename = reward_path + expname + ".txt"
+        self.filename = reward_path + expname + ".txt"
         #---------
-        result_tmp = ""
+        self.result_tmp = ""
     
     def setup_agent(self):
 
@@ -91,12 +99,10 @@ class TRPO(object):
         self.loss_names = ["Optim Gain", "mean KL", "entropy loss", "surrogate gain", "entropy"]
     
         dist = mean_kl
-    
         
         kl_gradient = self.pi.flatten.gradient(dist)
-        flat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
 
-        tangents = K.placeholder(shape=self.pi.variables.shape)
+        tangents = K.placeholder(shape=(None,)+K.eval(self.pi.variables.shape))
         gradient_vector_product = K.sum(kl_gradient*tangents) #pylint: disable=E1111
         fisher_vector_product = self.pi.flatten.flatgrad(gradient_vector_product)
     
@@ -104,7 +110,7 @@ class TRPO(object):
         self.compute_losses = K.Function([observations, actions, advantages], losses)
         self.compute_loss_grad = K.Function([observations, actions, advantages],
                                           losses + [self.pi.flatten.flatgrad(optimization_gain)])
-        self.compute_fisher_vector_product = K.Function([flat_tangent, observations, actions, advantages], fisher_vector_product)
+        self.compute_fisher_vector_product = K.Function([tangents, observations, actions, advantages], fisher_vector_product)
         self.compute_value_function_lossandgrad = K.function([observations, returns], [self.value_function.flatten.flatgrad(vferr)])
     
         th_init = self.pi.flatten.get_value()
@@ -128,11 +134,9 @@ class TRPO(object):
         assert sum([self.max_iters>0, self.max_timesteps>0, self.max_episodes>0])==1
     
         while True:        
-            if self.max_timesteps and timesteps_so_far >= max_timesteps:
+            if timesteps_so_far >= self.max_timesteps:
                 break
-            elif self.max_episodes and episodes_so_far >= max_episodes:
-                break
-            elif self.max_iters and iters_so_far >= self.max_iters:
+            elif self.max_episodes and episodes_so_far >= self.max_episodes:
                 break
             
             with c_utils.timed("Sampling"):
@@ -174,7 +178,7 @@ class TRPO(object):
                         self.pi.flatten.set_value(theta_new)
                         meanlosses = surr, kl, *_ = np.array(self.compute_losses(*args))
                         improve = surr - surrogate_before
-                        #logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
+                        logger.log("Expected: %.3f Actual: %.3f"%(expectedimprove, improve))
                         if not np.isfinite(meanlosses).all():
                             pass
                         elif kl > max_kl * 1.5:
@@ -244,16 +248,15 @@ class TRPO(object):
                 
             path["t"].append(i)
             path["prev_action"].append(action)
-            path["state"].append(state)
+            path["observation"].append(state)
             # act
-            action, proba = self.pi.act(state, stochastic = True)
+            action = self.policy.act(state, stochastic = True)
             vf = self.value_function.predict(state)
             
             state, rew, done = self.env.step(action)
             rews += rew
             path["action"].append(action)
-            path["reward"].append(rew)        
-            path["proba"].append(proba)
+            path["reward"].append(rew)
             path["vf"].append(vf)
             path["terminated"].append(done)
             path["next_vf"].append((1-done)*vf)

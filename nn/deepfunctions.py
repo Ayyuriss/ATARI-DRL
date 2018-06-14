@@ -9,7 +9,7 @@ import numpy as np
 import keras
 import keras.backend as K
 from keras import layers
-
+from base.flattener import Flattener
 sys.path.append(os.path.dirname(os.getcwd()))
 
 from nn import layers as nn
@@ -17,19 +17,23 @@ from nn import layers as nn
 # ================================================================
 # Base class for Q and deep Policy
 # ================================================================
+
 class BaseDeep(object):
     name = "Base"
-    def __init__(self,env):
+    def __init__(self,env,model=None):
         
         self.input_dim = env.observation_space.shape
         self.output_n = env.action_space.n
-        self.net = keras.models.Sequential()
-        
-        self.setup_model()
-
+        if model:
+            self.net = model
+        else:
+            self.setup_model()    
+        self.set_flattener()
     def setup_model(self):
-        raise (NotImplementedError, self.network_type)
+        raise NotImplementedError
 
+    def __call__(self,x):
+        return self.net(x)
     def fit(self,X,Y,batch_size=50):
         
         print("Fitting the NN:",X.shape, Y.shape)
@@ -59,6 +63,10 @@ class BaseDeep(object):
 
     def load(self,name):
         self.net = keras.models.load_model(name)
+    
+    def set_flattener(self):
+        
+        self.flattener = Flattener(self.trainable_variables)
         
     @property
     def trainable_variables(self):
@@ -95,10 +103,9 @@ class DeepPolicy(BaseDeep):
     def __init__(self,env):        
         self.name = "policy"
         super(DeepPolicy,self).__init__(env)
-        #self.reduce_weights(5)
     def setup_model(self):
         inputs = layers.Input(shape=self.input_dim)
-        scaled = inputs/255
+        scaled = layers.Lambda(lambda x: x/255.0)(inputs)
         block1 = conv_block(scaled)
         x = layers.Flatten()(block1)
         x = layers.Dense(128)(x)
@@ -106,7 +113,6 @@ class DeepPolicy(BaseDeep):
         self.net = keras.models.Model(inputs, outputs)
         optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
         self.net.compile(optimizer=optim,loss='mse')
-        #self.reducer.compile(self.model)
         print(self.net.summary())
 
 class DeepPolicy2(BaseDeep):
@@ -256,29 +262,37 @@ class BaselineValueFunction(BaseDeep):
 
     def __init__(self,env):
         self.name = "baseline"
-        self.input_dim = np.prod(env.observation_space.shape) + env.action_space.n +2
+        self.input_dim = env.observation_space.shape
         self.output_n = 1
         self.net = keras.models.Sequential()
         self.setup_model()
         
     def setup_model(self):
-        self.net.add(layers.Dense(self.output_n, input_shape = (self.input_dim,),activation='linear'))
-        self.net.compile(optimizer = 'adam',loss='mean_squared_error')
+        inputs = layers.Input(shape=self.input_dim)
+        scaled = layers.Lambda(lambda x: x/255.0)(inputs)
+        block1 = conv_block(scaled)
+        x = layers.Flatten()(block1)
+        x = layers.Dense(128)(x)
+        outputs = layers.Dense(1)(x)
+        self.net = keras.models.Model(inputs, outputs)
+        optim = keras.optimizers.Adam(lr=3e-4)
+        self.net.compile(optimizer=optim,loss='mse')
         print("Baseline Value Function\n", self.net.summary())
     
     def _features(self, episode):
         states = episode["state"].astype('float32')
-        states = states.reshape(len(states),-1)
-        proba = episode["output"].astype('float32')
-        n = len(episode["reward"])
-        al = episode["t"].reshape(-1,1).astype('float32')/10
-        ret = np.concatenate([states, proba, al, np.ones((n, 1))], axis=1)
-        return ret
+#        states = states.reshape(len(states),-1)
+#        proba = episode["output"].astype('float32')
+#        n = len(episode["reward"])
+#        al = episode["t"].reshape(-1,1).astype('float32')/10
+#        ret = np.concatenate([states, proba, al, np.ones((n, 1))], axis=1)
+        return states #ret
 
     def fit(self, episodes):
-        featmat = np.concatenate([self._features(episode) for episode in episodes])
+        print("Updating Advantage ")
+        featmat = np.concatenate([self._features(episode) for episode in episodes],axis=0)
         returns = np.concatenate([episode["return"] for episode in episodes])
-        self.net.fit(featmat,returns,batch_size=10,epochs=2)
+        self.net.fit(featmat,returns,batch_size=32,epochs=5,verbose=0)
 
     def predict(self, episode):
         return self.net.predict(self._features(episode))

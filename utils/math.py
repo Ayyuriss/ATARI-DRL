@@ -9,7 +9,7 @@ Created on Tue May  1 16:44:56 2018
 import numpy as np
 
 
-def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_ratio=.1):
+def linesearch(f, x, fullstep, max_backtracks=20):
     """
     Backtracking linesearch, where expected_improve_rate is the slope dy/dx at the initial point
     """
@@ -19,10 +19,7 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
         xnew = x + stepfrac*fullstep
         newfval = f(xnew)
         actual_improve = fval - newfval
-        expected_improve = expected_improve_rate*stepfrac
-        ratio = actual_improve/expected_improve
-        print("a/e/r:", actual_improve, expected_improve, ratio)
-        if ratio > accept_ratio and actual_improve > 0:
+        if actual_improve > 0:
             print("fval after:", newfval)
             return True, xnew
     return False, x

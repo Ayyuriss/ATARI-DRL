@@ -23,7 +23,7 @@ EPS = np.finfo(np.float32).tiny
 
 class TRPO(Agent):
     
-    options = {"cg_damping": (1e-3, "Add multiple of the identity to Fisher matrix during CG"),
+    options = {"cg_damping": (1e-1, "Add multiple of the identity to Fisher matrix during CG"),
         "max_kl": (1e-2, "KL divergence between old and new policy (averaged over state-space)"),
 	"linesearch_accept": (1e-1, "Lineseach accept ratio")
     }
@@ -32,9 +32,10 @@ class TRPO(Agent):
     def __init__(self, env, gamma, max_steps):
         self.agent_type = "TRPO"          
         policy = self.deep(env)
-        
+        self.old_policy = self.deep(env)
         super(TRPO, self).__init__(policy)
-        
+    
+
         self.discount = gamma
         self.env = env
         self.max_steps = max_steps
@@ -42,7 +43,6 @@ class TRPO(Agent):
         self.setup_agent()
         
         self.baseline = deepfunctions.BaselineValueFunction(env)
-
         self.episodes = []
         self.progbar = Progbar(100)
         
@@ -53,7 +53,7 @@ class TRPO(Agent):
         self.advantages = K.placeholder(ndim=1)
         current_pi = self.model.output
         
-        old_pi = K.placeholder(shape=(None, self.env.action_space.n))
+        old_pi = self.old_policy(self.states)
 
         log_likeli_pi = utils.loglikelihood(self.actions, current_pi)
         log_likeli_old_pi = utils.loglikelihood(self.actions, old_pi)
@@ -63,13 +63,12 @@ class TRPO(Agent):
         # Policy gradient:
 
         surrogate_loss = (-1.0 / N) * K.sum( K.exp(log_likeli_pi - log_likeli_old_pi)*self.advantages)
-        policy_gradient = self.Flaten.flatgrad(self.model.output)
         
-        current_pi_fixed = K.stop_gradient(current_pi)
+        policy_gradient = self.model.flattener.flatgrad(self.model.output)
         
-        kl_firstfixed = K.sum(utils.kl(current_pi_fixed, current_pi))/N
+        kl_firstfixed = K.mean(utils.entropy(current_pi))
         
-        grads = self.Flaten.flatgrad(kl_firstfixed)
+        grads = self.model.flattener.flatgrad(kl_firstfixed)
         
         flat_tangent = K.placeholder(ndim=1)
         
@@ -78,17 +77,16 @@ class TRPO(Agent):
         
         # Fisher-vector product
         
-        fisher_vector_product = self.Flaten.flatgrad(grad_vector_product)
+        fisher_vector_product = self.model.flattener.flatgrad(grad_vector_product)
         
         entropy = K.mean(utils.entropy(current_pi))
         
-        kl = K.mean(utils.kl(old_pi, current_pi))
 
-        losses = [surrogate_loss, kl, entropy]
+        losses = [surrogate_loss, kl_firstfixed, entropy]
         
         self.loss_names = ["Surrogate", "KL", "Entropy"]
 
-        args = [self.states, self.actions, self.advantages, old_pi]
+        args = [self.states, self.actions, self.advantages]
 
         self.compute_policy_gradient = K.function(args, [policy_gradient])
         self.compute_losses = K.function(args, losses)
@@ -98,14 +96,14 @@ class TRPO(Agent):
 
         self.rollout()
         
-        proba = np.concatenate([episode["output"] for episode in self.episodes],axis=0)
         states = np.concatenate([episode["state"] for episode in self.episodes],axis=0)
         actions = np.concatenate([episode["action"] for episode in self.episodes],axis=0)
         advantages = np.concatenate([episode["advantage"] for episode in self.episodes],axis=0)
         
-        args = (states, actions, advantages, proba)
-
-        thprev = self.Flaten.get()
+        args = (states, actions, advantages)
+        
+        thprev = self.model.flattener.get_value()
+        self.old_policy.flattener.set_value(thprev)
         
         g = self.compute_policy_gradient([*args])[0]
         
@@ -122,21 +120,19 @@ class TRPO(Agent):
             print("Lagrange multiplier:", lm, "norm(g):", np.linalg.norm(g))
             
             fullstep = stepdir / lm
-            neggdotstepdir = -g.dot(stepdir)
             def loss(th):
-                self.Flaten.set(th)
+                self.model.flattener.set_value(th)
                 return self.compute_losses([*args])[0]
             
-            success, theta = m_utils.linesearch(loss, thprev, fullstep, neggdotstepdir/lm,accept_ratio = self.options["linesearch_accept"][0])
+            success, theta = m_utils.linesearch(loss, thprev, fullstep)
             print("Line-Search Success", success)
-            self.Flaten.set(theta)
+            self.model.flattener.set_value(theta)
         losses_after = self.compute_losses([*args])
 
         for (lname, lbefore, lafter) in zip(self.loss_names, losses_before, losses_after):
             self.log(lname+"_before", lbefore)
             self.log(lname+"_after", lafter)
         self.print_log()
-        self.play()
         self.model.save(self.env.name)
     
     def act(self,state,train=False):
@@ -167,30 +163,28 @@ class TRPO(Agent):
         
         state = self.env.reset()
         
-        episode = {s : [] for s in ["t","state","action","reward","output","terminated"]}
+        episode = {s : [] for s in ["t","state","action","reward","terminated"]}
         
         i = 0
         
         while self.collected < self.max_steps:
                         
-            self.progbar.add(1)
+            
             
             episode["t"].append(i)
             episode["state"].append(state)
             # act
-            proba = self.model.predict(state)
-            action = utils.choice_weighted(proba)
+            action = self.act(state,train=True)
             
-            state, rew, done = self.env.step(action)
+            state, rew, done, info = self.env.step(action)
             
             episode["action"].append(action)
             episode["reward"].append(rew)        
-            episode["output"].append(proba)
             episode["terminated"].append(done)
             
             i += 1
             self.collected +=1
-            
+            self.progbar.add(1,values=[('Info',info)])
             if done:
                 break
         for k,v in episode.items():
@@ -222,7 +216,7 @@ class TRPO(Agent):
         
         while not done:
             action = self.act(state)
-            state, _, done = self.env.step(action)
+            state, _, done,_ = self.env.step(action)
         
         self.env.draw(name)
         

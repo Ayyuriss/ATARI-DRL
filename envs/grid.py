@@ -43,7 +43,7 @@ class GRID(object):
                                                                                              '-r': '25'})
     def draw_frame(self):
         
-        skimage.io.imshow(self.to_draw[self.t])
+        skimage.io.imshow(self.to_draw[self.t].astype(float)/255)
         
     def get_frame(self):
         
