@@ -20,10 +20,10 @@ gc.collect()
 
 
 game = "grid"
-env = GRID(grid_size=36,square_size=4, stochastic = True)
+env = GRID(grid_size=36,square_size=4, stochastic = False)
 time.sleep(5)
 
-agent = DDQN(env, 0.987, 32, memory_max=50000,train_steps= 10000000, double_update = 1000, eps_start = 1, eps_decay = 1e-6)
+agent = DDQN4(env, 0.987, 16, memory_max=50000,train_steps= 10000000, double_update = 512, eps_start = 1, eps_decay = 5e-6)
 #agent.load("dqnGRID")
 #agent = TRPO(env,0.99,10000)
 

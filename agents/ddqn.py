@@ -174,7 +174,6 @@ class DDQN(Agent):
         self.env.draw(name)
         self.set_eps(eps)
 
-class DDQN2(DDQN):
+class DDQN4(DDQN):
     
-    deep = deepfunctions.DeepQ2
-    
+    deep = deepfunctions.DeepQ4    

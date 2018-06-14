@@ -12,7 +12,7 @@ from keras import layers
 
 sys.path.append(os.path.dirname(os.getcwd()))
 
-from nn import neuralnets as nn
+from nn import layers as nn
 
 # ================================================================
 # Base class for Q and deep Policy
@@ -218,6 +218,35 @@ class DeepQ3(BaseDeep):
             g = K.Function([self.inputs],[self.y])
             Z = g([X])[0]
             self.init.X = Z
+
+class DeepQ4(BaseDeep):
+    def __init__(self,env):        
+        self.name = "dqn4"
+        super(DeepQ4,self).__init__(env)
+        self.initialized = False
+    def setup_model(self):
+        inputs = layers.Input(shape=self.input_dim)
+
+        y = layers.Conv2D(8,4,strides=2)(inputs)
+        y = layers.Conv2D(16,3,strides=2)(y)
+        y = layers.Reshape((7*7,-1))(y)
+        y = nn.AttentionDecoder(256, 128)(y)
+        y = layers.Reshape((7,7,-1))(y)
+        y = layers.Conv2D(32,3,strides=2)(y)
+        y = layers.MaxPool2D()(y)
+        y = layers.Flatten()(y)
+        self.y = layers.Dense(256,activation="tanh")(y)
+        
+        x = layers.Dense(128,activation="tanh")(self.y)
+        x = layers.Dense(128,activation="relu")(x)
+        x = layers.Dense(64,activation="relu")(x)
+
+        outputs = layers.Dense(self.output_n,activation='linear')(x)
+        self.net = keras.models.Model(inputs, outputs)        
+        optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
+        self.net.compile(optimizer=optim,loss='mse')
+            #self.reducer.compile(self.model)
+        print(self.net.summary())        
 
             
 # ================================================================

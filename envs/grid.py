@@ -8,10 +8,10 @@ Created on Tue Jun  5 15:27:24 2018
 
 import skvideo
 import skvideo.io
-import skimage
+import skimage.io
 import numpy as np
 import sys
-
+import gym.spaces
 sys.path.append("../")
 PLAY_PATH="./plays/"
 
@@ -28,39 +28,28 @@ class GRID(object):
         self.stochastic = stochastic
         self.board = np.zeros((self.grid_size,self.grid_size))
 
-        # recording states
-        self.to_draw = np.zeros((max_time+2, self.grid_size, self.grid_size,1))
+        self.to_draw = np.zeros((max_time+2, self.grid_size, self.grid_size,3)).astype(int)
         
+        self.action_space = gym.spaces.Discrete(4)
         
-        self.action_space = Discrete(4)
-        
-        self.observation_space = Continuous((self.grid_size,self.grid_size,2))
-
+        self.observation_space = gym.spaces.Box(low=-1,high=1,shape=(self.grid_size,self.grid_size,3),dtype=np.int32)#Continuous((self.grid_size,self.grid_size,1))
+	
         self.reset()
         
     def draw(self,file):
         
-        video = np.zeros((len(self.to_draw),self.grid_size, self.grid_size,3)).astype('uint8')
-        
-        #Turns the mouse cell to red        
-        video[self.to_draw[:,:,:,0]>0,0] = 255
-
-        #Turns the cat position to white
-        video[self.to_draw[:,:,:,0]<0,:] = 255
-
-        skvideo.io.vwrite(PLAY_PATH+file+ '.mp4', video,inputdict={'-r': '25'},outputdict={'-vcodec': 'libx264',
+        skvideo.io.vwrite(PLAY_PATH+file+ '.mp4', self.to_draw,inputdict={'-r': '25'},outputdict={'-vcodec': 'libx264',
                                                                                               '-pix_fmt': 'yuv420p',
                                                                                              '-r': '25'})
-    
     def draw_frame(self):
         
         skimage.io.imshow(self.to_draw[self.t])
         
     def get_frame(self):
         
-        self.to_draw[self.t][self.board>0,0] = 1      
+        self.to_draw[self.t][self.board>0,0] = 255     
 
-        self.to_draw[self.t][self.x:min(self.grid_size,self.x+self.square),self.y:min(self.grid_size,self.y+self.square),0] = -1
+        self.to_draw[self.t][self.x:min(self.grid_size,self.x+self.square),self.y:min(self.grid_size,self.y+self.square),:] = 255
         
     def step(self, action):
         
@@ -68,7 +57,6 @@ class GRID(object):
         game ends."""
 
  
-
         reward = 0
         # clear current position
 
@@ -136,8 +124,9 @@ class GRID(object):
         
     def add_mouse(self):
         
-        self.board*=0
+        self.board *= 0
         self.mouse_x,self.mouse_y = self.x,self.y
+
         if self.stochastic:
             while (self.mouse_x,self.mouse_y)==(self.x,self.y): 
                 self.mouse_x = np.random.randint(self.square, self.grid_size-self.square)
@@ -153,11 +142,12 @@ class GRID(object):
         self.t = self.t + 1
         self.get_frame()
     def current_state(self):
-        
-        return np.concatenate([self.to_draw[self.t-1],self.to_draw[self.t]],axis=-1)
+
+        return self.to_draw[self.t]
     
     def get_mouse(self):
         return np.array([self.mouse_x,self.mouse_y])/self.grid_size
+
     def get_cat(self):
         return np.array([self.x,self.y])/self.grid_size
 
