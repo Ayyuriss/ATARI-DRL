@@ -63,9 +63,8 @@ class TRPO(Agent):
         # Policy gradient:
 
         surrogate_loss = (-1.0 / N) * K.sum( K.exp(log_likeli_pi - log_likeli_old_pi)*self.advantages)
-        
         policy_gradient = self.Flaten.flatgrad(self.model.output)
-
+        
         current_pi_fixed = K.stop_gradient(current_pi)
         
         kl_firstfixed = K.sum(utils.kl(current_pi_fixed, current_pi))/N

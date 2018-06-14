@@ -28,7 +28,7 @@ def linesearch(f, x, fullstep, expected_improve_rate, max_backtracks=10, accept_
     return False, x
 
 
-def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
+def conjugate_gradient(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
     """
     Demmel p 312
     """
@@ -60,35 +60,6 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
     if callback is not None:
         callback(x)
     if verbose: print(fmtstr % (i+1, rdotr, np.linalg.norm(x)))  # pylint: disable=W0631
-    return x
-
-
-
-def conjugate_gradient(f_Ax, b, n_iters=10, gtol=1e-10):
-    """Search for Ax-b=0 solution using conjugate gradient algorithm
-       
-        f_Ax : callable, f(x, *args) (returns A.dot(x) with A Symetric Definite)
-        b : b such we search for Ax=b
-        cg_iter : max number of iterations
-        gtol: iterations stop when norm(residual) < gtol
-    """
-    
-    p = b.copy()
-    r = b.copy()
-    x = np.zeros_like(b)
-    rdotr = r.dot(r)
-    for _ in range(n_iters):
-        if rdotr < gtol:
-            break
-        z = f_Ax(p)
-        alpha = rdotr / p.dot(z)
-        x += alpha * p
-        r -= alpha * z
-        newrdotr = r.dot(r)
-        beta = newrdotr / rdotr
-        p = r + beta * p
-        rdotr = newrdotr
-        
     return x
 
 def argmax(vect):

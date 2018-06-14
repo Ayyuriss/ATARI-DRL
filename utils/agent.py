@@ -7,10 +7,8 @@ Created on Tue May  1 16:48:51 2018
 """
 
 # =============================================================================
-# =============================================================================
 #       Keras secondary functions
 #==============================================================================
-
 
 import keras.backend as K
 import numpy as np
@@ -37,35 +35,6 @@ def kl(prob0, prob1):
 def entropy(prob0):
     return -K.sum( prob0*K.log(prob0), axis=1)
 
-class Flattener(object):
-    def __init__(self, variables):
-        self.variables = variables        
-        assert type(variables) == list
-        self.shapes = list(map(K.int_shape, variables))
-        self.get_op = K.concatenate([K.flatten(x) for x in self.variables])
-        start = 0
-        self.idx = []
-        for s in self.shapes:
-            size = np.prod(s)
-            self.idx.append((start,start + size))
-            start += size
-        self.total_size = start
-        
-    def get(self):
-        return K.get_value(self.get_op)
-    
-    def flatgrad(self,loss):
-        grads = K.gradients(loss, self.variables)
-        return K.concatenate([K.flatten(g) for g in grads])
-    
-    def set(self,theta):
-        assert theta.shape == (self.total_size,)
-        theta = np.array(theta,dtype='float32')
-        
-        for i,v in enumerate(self.variables):
-            
-            K.set_value(v, np.reshape(
-                    theta[self.idx[i][0]:self.idx[i][1]], self.shapes[i]))
             
 def choice_weighted(pi):
 #    np.random.seed(np.random.randint(0,2**10))

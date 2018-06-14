@@ -98,11 +98,10 @@ class DeepPolicy(BaseDeep):
         #self.reduce_weights(5)
     def setup_model(self):
         inputs = layers.Input(shape=self.input_dim)
-        block0 = layers.BatchNormalization()(inputs)
-        block1 = conv_block(block0)
+        scaled = inputs/255
+        block1 = conv_block(scaled)
         x = layers.Flatten()(block1)
-        x = layers.Dense(256,activation="relu")(x)
-         
+        x = layers.Dense(128)(x)
         outputs = layers.Dense(self.output_n,activation='softmax')(x)
         self.net = keras.models.Model(inputs, outputs)
         optim = keras.optimizers.RMSprop(lr=0.00025, rho=0.95, epsilon=0.01)
@@ -139,7 +138,7 @@ class DeepQ(BaseDeep):
     def setup_model(self):
         
         inputs = layers.Input(shape=self.input_dim)
-        block0 = layers.BatchNormalization()(inputs)
+        scaled = inputs/255
         block1 = conv_block(block0)
         #self.reducer = reducer.ReductionLayer(6,64,0.0001)
         #block1 = self.reducer(block0)
@@ -257,18 +256,18 @@ class BaselineValueFunction(BaseDeep):
 
 
 def conv_block(inputs):
-    n_filters_1 = 16
+    n_filters_1 = 8
     k_size_1 = 8
     stride_1 = 4
         
-    n_filters_2 = 32
+    n_filters_2 = 16
     k_size_2 = 4
     stride_2 = 2
     
     #a = layers.ZeroPadding2D()(inputs)
     a = layers.Conv2D(n_filters_1, k_size_1, strides=stride_1,
-                               activation='relu')(inputs)
+                               activation='relu',kernel_regularizer='l1')(inputs)
     a = layers.Conv2D(n_filters_2, k_size_2, strides=stride_2, 
-                               activation='relu')(a)
+                               activation='relu',kernel_regularizer='l2')(a)
 
     return a
